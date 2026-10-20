@@ -1,0 +1,21 @@
+name: cloner_core
+description: Transport, discovery and migration logic for Mobile Cloner. Wire-compatible with the LocalSend v2 protocol.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  args: ^2.5.0
+  basic_utils: ^5.7.0
+  crypto: ^3.0.3
+  mime: ^1.0.5
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
+
+executables:
+  cloner: cloner

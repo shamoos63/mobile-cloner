@@ -1,0 +1,14 @@
+.dart_tool/
+build/
+.packages
+pubspec_overrides.yaml
+*.iml
+.idea/
+.vscode/
+local.properties
+**/android/.gradle/
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+*.jks
+key.properties
