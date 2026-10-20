@@ -135,7 +135,7 @@ void main() {
     final target = await client.probe('127.0.0.1', port: server.port!);
     final evil = OutgoingFile(
       dto: const FileDto(id: 'x', fileName: '../../escape.txt', size: 2, fileType: 'text/plain'),
-      open: () => Stream.value([1, 2]),
+      open: (_) => Stream.value([1, 2]),
     );
     final r = await SendJob(client: client, target: target, files: [evil]).run();
     expect(r.outcome, isNot(SendOutcome.completed));

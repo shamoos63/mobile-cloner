@@ -39,8 +39,8 @@ class BackupReceiveDelegate implements ReceiveDelegate {
   }
 
   @override
-  Future<IncomingFileWriter> openFile(ReceiveSession session, FileDto file) async =>
-      FileSystemWriter(store.pathFor(session.sender.info, file), modified: file.modified);
+  Future<IncomingFileWriter> openFile(Device sender, FileDto file) async =>
+      FileSystemWriter(store.pathFor(sender.info, file), modified: file.modified);
 
   @override
   Future<void> onSessionFinished(ReceiveSession session) async {

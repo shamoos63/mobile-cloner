@@ -5,16 +5,20 @@ import 'dart:io';
 import '../protocol/constants.dart';
 import '../protocol/device_info.dart';
 import '../protocol/file_dto.dart';
+import '../protocol/peer_status.dart';
 import '../security/identity.dart';
 import '../transfer/session_summary.dart';
 
 class PrepareUploadResult {
-  const PrepareUploadResult({required this.sessionId, required this.tokens});
+  const PrepareUploadResult({required this.sessionId, required this.tokens, this.offsets = const {}});
 
   final String sessionId;
 
   /// fileId -> token. Files the receiver declined are missing.
   final Map<String, String> tokens;
+
+  /// fileId -> bytes the receiver already holds (Cloner resume extension).
+  final Map<String, int> offsets;
 
   /// Receiver already has everything (HTTP 204).
   bool get nothingToSend => tokens.isEmpty;
@@ -28,6 +32,15 @@ class ClonerHttpException implements Exception {
   bool get pinRequired => statusCode == 401;
   bool get rejected => statusCode == 403;
   bool get busy => statusCode == 409;
+
+  /// For 416 on a resumed upload: how many bytes the receiver really has.
+  int? get receiverOffset {
+    try {
+      return ((jsonDecode(message) as Map)['offset'] as num?)?.toInt();
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   String toString() => 'ClonerHttpException($statusCode): $message';
@@ -118,13 +131,19 @@ class ClonerClient {
       return const PrepareUploadResult(sessionId: '', tokens: {});
     }
     final json = _decodeObject(res.body);
+    final cloner = json['cloner'] as Map?;
     return PrepareUploadResult(
       sessionId: json['sessionId'] as String,
       tokens: (json['files'] as Map).cast<String, String>(),
+      offsets: ((cloner?['offsets'] as Map?) ?? const {}).map(
+        (k, v) => MapEntry(k as String, (v as num).toInt()),
+      ),
     );
   }
 
-  /// Streams one file. [onProgress] gets cumulative bytes sent.
+  /// Streams one file. [data] must start at [offset]; [length] is the
+  /// number of bytes still to send. [onProgress] gets bytes sent so far in
+  /// this call.
   Future<void> upload(
     Device target, {
     required String sessionId,
@@ -132,10 +151,16 @@ class ClonerClient {
     required String token,
     required int length,
     required Stream<List<int>> data,
+    int offset = 0,
     void Function(int sent)? onProgress,
   }) async {
     final req = await _http.postUrl(
-      target.uri(ApiRoute.upload, {'sessionId': sessionId, 'fileId': fileId, 'token': token}),
+      target.uri(ApiRoute.upload, {
+        'sessionId': sessionId,
+        'fileId': fileId,
+        'token': token,
+        if (offset > 0) 'offset': '$offset',
+      }),
     );
     req.headers.contentType = ContentType.binary;
     req.contentLength = length;
@@ -162,6 +187,13 @@ class ClonerClient {
       target.uri(ApiRoute.finish, {'sessionId': sessionId}),
       summary.toJson(),
     ).timeout(const Duration(seconds: 30));
+  }
+
+  /// Heartbeat: sends our status, returns the peer's.
+  Future<PeerStatus> status(Device target, PeerStatus mine) async {
+    final res = await _postJson(target.uri(ApiRoute.status), mine.toJson())
+        .timeout(const Duration(seconds: 4));
+    return PeerStatus.fromJson(_decodeObject(res.body));
   }
 
   void close() => _http.close(force: true);

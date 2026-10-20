@@ -6,7 +6,12 @@ import 'receive_session.dart';
 /// temp file first and only move it into place on [commit], so a broken
 /// transfer never leaves half a database in the WhatsApp folder.
 abstract interface class IncomingFileWriter {
-  Future<void> addStream(Stream<List<int>> data);
+  /// Bytes of this file already stored from an interrupted transfer.
+  Future<int> partialBytes();
+
+  /// Writes [data]. With [append] the bytes continue the partial file,
+  /// otherwise any partial data is discarded first.
+  Future<void> addStream(Stream<List<int>> data, {bool append = false});
   Future<void> commit();
   Future<void> abort();
 }
@@ -20,7 +25,7 @@ abstract interface class ReceiveDelegate {
   /// request. Typically shows an Accept dialog.
   Future<Set<String>?> onPrepare(Device sender, List<FileDto> files);
 
-  Future<IncomingFileWriter> openFile(ReceiveSession session, FileDto file);
+  Future<IncomingFileWriter> openFile(Device sender, FileDto file);
 
   /// All files settled and (for Cloner senders) the summary arrived.
   /// Post-processing goes here: import contacts, scan media, show the

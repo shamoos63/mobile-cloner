@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import '../protocol/constants.dart';
 import '../protocol/device_info.dart';
 import '../protocol/file_dto.dart';
+import '../protocol/peer_status.dart';
 import '../security/identity.dart';
 import '../transfer/session_summary.dart';
 import 'receive_delegate.dart';
@@ -32,6 +33,13 @@ class SessionEnded extends ServerEvent {
   final ReceiveSession session;
 }
 
+/// The sender reported its health (battery, pause state).
+class PeerStatusReceived extends ServerEvent {
+  const PeerStatusReceived(this.session, this.status);
+  final ReceiveSession? session;
+  final PeerStatus status;
+}
+
 /// HTTP(S) server implementing the receiving half of LocalSend v2 plus the
 /// Cloner `finish` extension. Only one session runs at a time.
 class ClonerServer {
@@ -40,7 +48,8 @@ class ClonerServer {
     required this.info,
     required this.delegate,
     this.pin,
-  });
+    PeerStatus Function()? localStatus,
+  }) : localStatus = localStatus ?? (() => const PeerStatus());
 
   final DeviceIdentity identity;
   DeviceInfo info;
@@ -48,6 +57,9 @@ class ClonerServer {
 
   /// Optional PIN a sender has to supply on prepare-upload.
   String? pin;
+
+  /// Our own health, returned on every status heartbeat.
+  final PeerStatus Function() localStatus;
 
   HttpServer? _server;
   ReceiveSession? _session;
@@ -86,6 +98,8 @@ class ClonerServer {
           await _cancel(req);
         case ('POST', ApiRoute.finish):
           await _finish(req);
+        case ('POST', ApiRoute.status):
+          await _peerStatus(req);
         default:
           await _status(req.response, HttpStatus.notFound, 'Not found');
       }
@@ -112,10 +126,6 @@ class ClonerServer {
     if (pin != null && req.uri.queryParameters['pin'] != pin) {
       return _status(req.response, HttpStatus.unauthorized, 'PIN required');
     }
-    final active = _session;
-    if (active != null && active.state == SessionState.active) {
-      return _status(req.response, HttpStatus.conflict, 'Blocked by another session');
-    }
     final body = await _readJson(req);
     if (body == null || body['info'] is! Map || body['files'] is! Map) {
       return _status(req.response, HttpStatus.badRequest, 'Invalid body');
@@ -131,6 +141,17 @@ class ClonerServer {
       return _status(req.response, HttpStatus.badRequest, 'Invalid body');
     }
     final sender = Device(ip: _remoteIp(req), info: senderInfo);
+    final active = _session;
+    if (active != null && active.state == SessionState.active) {
+      // The same sender coming back (new IP after switching from Wi-Fi to
+      // cable, or after a crash) replaces its own stale session.
+      if (active.sender.fingerprint == senderInfo.fingerprint && senderInfo.fingerprint.isNotEmpty) {
+        active.state = SessionState.canceled;
+        _events.add(SessionEnded(active));
+      } else {
+        return _status(req.response, HttpStatus.conflict, 'Blocked by another session');
+      }
+    }
     final accepted = await delegate.onPrepare(sender, files);
     if (accepted == null) {
       return _status(req.response, HttpStatus.forbidden, 'Rejected');
@@ -144,10 +165,25 @@ class ClonerServer {
       accepted: {for (final f in files) if (accepted.contains(f.id)) f.id: f},
     );
     _session = session;
+
+    // Cloner extension: tell the sender how much of each file we already
+    // hold so it resumes mid-file instead of starting over.
+    final offsets = <String, int>{};
+    if (senderInfo.isCloner) {
+      for (final status in session.files.values) {
+        final writer = await delegate.openFile(sender, status.file);
+        final have = await writer.partialBytes();
+        if (have > 0 && have < status.file.size) {
+          offsets[status.file.id] = have;
+          status.received = have;
+        }
+      }
+    }
     _events.add(SessionStarted(session));
     await _json(req.response, {
       'sessionId': session.id,
       'files': {for (final e in session.files.entries) e.key: e.value.token},
+      if (offsets.isNotEmpty) 'cloner': {'offsets': offsets},
     });
   }
 
@@ -166,15 +202,25 @@ class ClonerServer {
       return _status(req.response, HttpStatus.forbidden, 'Invalid token or IP address');
     }
 
+    final offset = int.tryParse(q['offset'] ?? '') ?? 0;
+    final writer = await delegate.openFile(session.sender, status.file);
+    final have = await writer.partialBytes();
+    if (offset > 0 && offset != have) {
+      // Tell the sender where we really are; it retries from there.
+      return _status(req.response, HttpStatus.requestedRangeNotSatisfiable, 'Offset mismatch', {'offset': have});
+    }
     status
       ..state = FileState.receiving
-      ..received = 0;
-    final writer = await delegate.openFile(session, status.file);
+      ..received = offset;
     final hashSink = _DigestSink();
-    final hasher = status.file.sha256 != null ? crypto.sha256.startChunkedConversion(hashSink) : null;
+    // A resumed file can't be hashed without re-reading the prefix; the
+    // size check below still catches truncation.
+    final hasher = status.file.sha256 != null && offset == 0
+        ? crypto.sha256.startChunkedConversion(hashSink)
+        : null;
     var lastEmit = DateTime.now();
     try {
-      await writer.addStream(req.map((chunk) {
+      await writer.addStream(append: offset > 0, req.map((chunk) {
         status.received += chunk.length;
         hasher?.add(chunk);
         final now = DateTime.now();
@@ -185,6 +231,13 @@ class ClonerServer {
         return chunk;
       }));
       hasher?.close();
+      if (status.received != status.file.size) {
+        // Connection dropped mid-file: keep the partial data for resume.
+        await writer.abort();
+        status.state = FileState.pending;
+        _events.add(FileProgress(session, status));
+        return _status(req.response, HttpStatus.badRequest, 'Incomplete body');
+      }
       if (hasher != null && hashSink.value.toString() != status.file.sha256!.toLowerCase()) {
         await writer.abort();
         status.state = FileState.failed;
@@ -194,9 +247,11 @@ class ClonerServer {
       await writer.commit();
       status.state = FileState.done;
     } catch (e) {
+      // Usually the link dropped. Keep the partial file and let the sender
+      // resume; the file stays pending.
       await writer.abort();
       status
-        ..state = FileState.failed
+        ..state = FileState.pending
         ..error = e;
       _events.add(FileProgress(session, status));
       rethrow;
@@ -209,6 +264,18 @@ class ClonerServer {
     if (!session.sender.info.isCloner && session.allSettled) {
       await _endSession(session);
     }
+  }
+
+  Future<void> _peerStatus(HttpRequest req) async {
+    final body = await _readJson(req);
+    if (body != null) {
+      final session = _session;
+      _events.add(PeerStatusReceived(
+        session != null && session.sender.ip == _remoteIp(req) ? session : null,
+        PeerStatus.fromJson(body),
+      ));
+    }
+    await _json(req.response, localStatus().toJson());
   }
 
   Future<void> _finish(HttpRequest req) async {
@@ -268,11 +335,11 @@ class ClonerServer {
     await res.close();
   }
 
-  Future<void> _status(HttpResponse res, int code, String message) async {
+  Future<void> _status(HttpResponse res, int code, String message, [Map<String, Object?>? extra]) async {
     res
       ..statusCode = code
       ..headers.contentType = ContentType.json
-      ..write(jsonEncode({'message': message}));
+      ..write(jsonEncode({'message': message, ...?extra}));
     await res.close();
   }
 }

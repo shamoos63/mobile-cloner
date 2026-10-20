@@ -28,4 +28,7 @@ abstract final class ApiRoute {
   /// summary so the receiver can run post-processing (contacts import,
   /// media scan, WhatsApp hints) even if some files were skipped.
   static const finish = '$clonerApiBase/finish';
+
+  /// Heartbeat both ways during a transfer: battery, free space, pause.
+  static const status = '$clonerApiBase/status';
 }
