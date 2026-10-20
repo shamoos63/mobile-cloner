@@ -45,7 +45,7 @@ class OutgoingFile {
         accessed: stat.accessed,
         cloner: ClonerFileMeta(category: category, relPath: relPath, takenAt: takenAt, mediaAlbum: album),
       ),
-      open: (offset) => file.openRead(offset),
+      open: (offset) => readChunked(file, offset),
     );
   }
 
@@ -54,6 +54,22 @@ class OutgoingFile {
   static String stableId(ContentCategory category, String relPath, int size, DateTime? modified) {
     final key = '${category.wireName}|$relPath|$size|${modified?.millisecondsSinceEpoch ?? 0}';
     return crypto.sha1.convert(utf8.encode(key)).toString().substring(0, 24);
+  }
+}
+
+/// Reads [file] from [offset] in 1 MB blocks. Much faster over HTTP than
+/// `File.openRead`'s 64 KB chunks, which cost a socket write each.
+Stream<List<int>> readChunked(File file, int offset, {int chunkSize = 1 << 20}) async* {
+  final raf = await file.open();
+  try {
+    await raf.setPosition(offset);
+    while (true) {
+      final bytes = await raf.read(chunkSize);
+      if (bytes.isEmpty) break;
+      yield bytes;
+    }
+  } finally {
+    await raf.close();
   }
 }
 

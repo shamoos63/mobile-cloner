@@ -1,0 +1,11 @@
+Mobile Cloner
+Copyright 2026 Mobile Cloner contributors
+
+This product implements the LocalSend Protocol v2
+(https://github.com/localsend/protocol) and its design for device discovery
+and file transfer was informed by LocalSend (https://github.com/localsend/localsend),
+Copyright LocalSend contributors, licensed under the Apache License 2.0.
+No LocalSend source code is copied into this repository.
+
+The Manrope font (app/assets/fonts) is licensed under the SIL Open Font
+License 1.1; see app/assets/fonts/OFL.txt.
