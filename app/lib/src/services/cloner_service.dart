@@ -320,7 +320,7 @@ class ClonerService extends ChangeNotifier {
   }
 
   Future<Device> connectManual(String host, {int port = defaultPort}) async {
-    final device = await client.probe(host, port: port, timeout: const Duration(seconds: 4));
+    final device = await client.probeAuto(host, port: port, timeout: const Duration(seconds: 4));
     _onPeer(device);
     return device;
   }

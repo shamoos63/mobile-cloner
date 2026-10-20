@@ -62,6 +62,7 @@ class ClonerServer {
   final PeerStatus Function() localStatus;
 
   HttpServer? _server;
+  HttpServer? _loopback;
   ReceiveSession? _session;
   final _events = StreamController<ServerEvent>.broadcast();
 
@@ -69,17 +70,32 @@ class ClonerServer {
   ReceiveSession? get currentSession => _session;
   int? get port => _server?.port;
 
-  Future<void> start({int port = defaultPort, InternetAddress? address}) async {
+  /// Port of the plain-HTTP loopback listener, if it started.
+  int? get cablePort => _loopback?.port;
+
+  /// Starts the network server, plus a plain-HTTP loopback listener on
+  /// [loopback] for ADB cable transfers (null disables it).
+  Future<void> start({int port = defaultPort, InternetAddress? address, int? loopback = loopbackPort}) async {
     final bind = address ?? InternetAddress.anyIPv4;
     _server = info.protocol == ProtocolType.https
         ? await HttpServer.bindSecure(bind, port, identity.toSecurityContext())
         : await HttpServer.bind(bind, port);
     _server!.listen(_handle, onError: (_) {});
+    if (loopback != null) {
+      try {
+        _loopback = await HttpServer.bind(InternetAddress.loopbackIPv4, loopback);
+        _loopback!.listen(_handle, onError: (_) {});
+      } on SocketException {
+        // Port taken (another instance); cable mode falls back to HTTPS.
+      }
+    }
   }
 
   Future<void> stop() async {
     await _server?.close(force: true);
+    await _loopback?.close(force: true);
     _server = null;
+    _loopback = null;
   }
 
   Future<void> _handle(HttpRequest req) async {
@@ -288,9 +304,11 @@ class ClonerServer {
     for (final f in session.files.values) {
       if (f.state == FileState.pending) f.state = FileState.skipped;
     }
-    await _endSession(session);
+    // Answer first: post-processing (contacts import, media scan) can take
+    // longer than the sender waits, and a CLI receiver may exit right after.
     req.response.statusCode = HttpStatus.ok;
     await req.response.close();
+    await _endSession(session);
   }
 
   Future<void> _endSession(ReceiveSession session) async {

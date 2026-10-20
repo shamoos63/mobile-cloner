@@ -143,4 +143,32 @@ void main() {
     client.close();
     await server.stop();
   });
+
+  test('ADB cable path: loopback listener takes plain HTTP, network port stays HTTPS', () async {
+    final store = BackupStore(p.join(tmp.path, 'backups'));
+    final server = ClonerServer(
+      identity: receiverId,
+      info: info(receiverId, 'PC', 0, platform: ClonerPlatform.macos),
+      delegate: BackupReceiveDelegate(store),
+    );
+    await server.start(port: 0, address: InternetAddress.loopbackIPv4, loopback: 0);
+    final client = ClonerClient(self: info(senderId, 'Old phone', 53317, sdk: 33));
+
+    final cable = await client.probeAuto('127.0.0.1', port: server.cablePort!);
+    expect(cable.info.protocol, ProtocolType.http);
+    final net = await client.probe('127.0.0.1', port: server.port!);
+    expect(net.info.protocol, ProtocolType.https);
+
+    final f = File(p.join(tmp.path, 'v.mp4'))..writeAsBytesSync(List.filled(3 << 20, 7));
+    final result = await SendJob(
+      client: client,
+      target: cable,
+      files: [OutgoingFile.fromFile(f, category: ContentCategory.videos, relPath: 'DCIM/v.mp4')],
+    ).run();
+    expect(result.outcome, SendOutcome.completed, reason: '${result.error}');
+    expect(File(p.join(store.deviceDir(client.self), 'videos', 'DCIM', 'v.mp4')).lengthSync(), 3 << 20);
+
+    client.close();
+    await server.stop();
+  });
 }

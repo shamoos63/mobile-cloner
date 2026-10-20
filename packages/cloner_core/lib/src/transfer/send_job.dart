@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -135,7 +136,9 @@ class SendJob {
     required this.target,
     required this.files,
     this.pin,
-    this.parallel = 3,
+    this.parallel = 5,
+    this.maxLargeInFlight = 2,
+    this.largeFileBytes = 8 << 20,
     this.retries = 3,
     this.sourceSdkInt,
     this.checkpoint,
@@ -149,7 +152,14 @@ class SendJob {
   final Device target;
   final List<OutgoingFile> files;
   final String? pin;
+  /// Upload lanes. Small files are latency bound (one request each), so
+  /// several in flight keep the link busy between them.
   final int parallel;
+
+  /// Large files are bandwidth bound; more than a couple at once only
+  /// splits the link and fragments the receiver's disk writes.
+  final int maxLargeInFlight;
+  final int largeFileBytes;
   final int retries;
   final int? sourceSdkInt;
 
@@ -262,10 +272,25 @@ class SendJob {
         });
       }
 
-      var next = 0;
+      // Two queues, each in the caller's order (e.g. WhatsApp databases
+      // first). Free lanes take large files while fewer than
+      // [maxLargeInFlight] are moving, otherwise small ones.
+      final large = Queue.of(queue.where((f) => f.dto.size >= largeFileBytes));
+      final small = Queue.of(queue.where((f) => f.dto.size < largeFileBytes));
+      var largeInFlight = 0;
+      OutgoingFile? take() {
+        if (large.isNotEmpty && (largeInFlight < maxLargeInFlight || small.isEmpty)) {
+          largeInFlight++;
+          return large.removeFirst();
+        }
+        return small.isNotEmpty ? small.removeFirst() : null;
+      }
+
       Future<void> worker() async {
-        while (!_stopped && next < queue.length) {
-          final file = queue[next++];
+        while (!_stopped) {
+          final file = take();
+          if (file == null) break;
+          final isLarge = file.dto.size >= largeFileBytes;
           final id = file.dto.id;
           final stats = summary.of(file.dto.category);
           current = file.dto.relPath;
@@ -318,6 +343,7 @@ class SendJob {
             failed++;
             stats.failed += 1;
           }
+          if (isLarge) largeInFlight--;
           if (checkpoint != null) await checkpointStore?.save(checkpoint!, force: ok && done % 20 == 0);
           emit();
         }

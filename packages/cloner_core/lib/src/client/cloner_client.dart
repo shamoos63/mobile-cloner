@@ -113,6 +113,17 @@ class ClonerClient {
     );
   }
 
+  /// [probe] that picks the scheme: loopback addresses (ADB cable) try the
+  /// plain-HTTP listener first, everything else is HTTPS.
+  Future<Device> probeAuto(String ip, {int port = defaultPort, Duration? timeout}) async {
+    if (InternetAddress.tryParse(ip)?.isLoopback ?? false) {
+      try {
+        return await probe(ip, port: port, https: false, timeout: timeout);
+      } catch (_) {}
+    }
+    return probe(ip, port: port, timeout: timeout);
+  }
+
   Future<PrepareUploadResult> prepareUpload(
     Device target,
     List<FileDto> files, {

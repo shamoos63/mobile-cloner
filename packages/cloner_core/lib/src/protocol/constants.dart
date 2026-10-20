@@ -9,6 +9,11 @@ library;
 
 const protocolVersion = '2.1';
 const defaultPort = 53317;
+
+/// Plain-HTTP listener bound to 127.0.0.1 only. ADB maps the USB cable onto
+/// it, so cable transfers skip TLS (the cable is the trust boundary and TLS
+/// is the main CPU cost on phones). Not reachable from the network.
+const loopbackPort = 53320;
 const defaultMulticastGroup = '224.0.0.167';
 
 const localSendApiBase = '/api/localsend/v2';

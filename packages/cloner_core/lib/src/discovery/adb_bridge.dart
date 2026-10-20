@@ -10,8 +10,11 @@ import '../protocol/constants.dart';
 ///   `127.0.0.1:[pcToPhonePort]` (used for restores, computer sends).
 ///
 /// Separate ports avoid clashing with each side's own server on 53317.
+/// Both map onto the plain-HTTP [loopbackPort] listener: the cable needs no
+/// TLS, and skipping it roughly doubles throughput on phone CPUs. Connect
+/// with `https: false`.
 class AdbBridge {
-  AdbBridge({this.adbPath = 'adb', this.devicePort = defaultPort, this.desktopPort = defaultPort});
+  AdbBridge({this.adbPath = 'adb', this.devicePort = loopbackPort, this.desktopPort = loopbackPort});
 
   final String adbPath;
   final int devicePort;

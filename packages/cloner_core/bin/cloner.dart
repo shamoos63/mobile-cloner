@@ -58,10 +58,13 @@ String fmtBytes(int b) {
   return '${v.toStringAsFixed(i == 0 ? 0 : 1)} ${units[i]}';
 }
 
+/// Upload lanes; CLONER_PARALLEL overrides for benchmarking.
+final _parallel = int.tryParse(Platform.environment['CLONER_PARALLEL'] ?? '') ?? 5;
+
 Future<Device> resolveTarget(ClonerClient client, String to) async {
   final parts = to.split(':');
   final port = parts.length > 1 ? int.parse(parts[1]) : defaultPort;
-  return client.probe(parts[0], port: port);
+  return client.probeAuto(parts[0], port: port);
 }
 
 class ReceiveCommand extends Command<void> {
@@ -193,7 +196,7 @@ class RestoreCommand extends Command<void> {
 
 Future<void> _sendAndReport(ClonerClient client, Device target, List<OutgoingFile> files, String? pin) async {
   stdout.writeln('Sending ${files.length} files to ${target.info.alias}...');
-  final job = SendJob(client: client, target: target, files: files, pin: pin);
+  final job = SendJob(client: client, target: target, files: files, pin: pin, parallel: _parallel);
   var lastPct = -1;
   job.progress.listen((pr) {
     final pct = (pr.fraction * 100).floor();

@@ -55,7 +55,6 @@ Future<void> main(List<String> args) async {
     target: target,
     files: files,
     sourceSdkInt: 31,
-    parallel: 2,
     localStatus: () => const PeerStatus(batteryLevel: 67, charging: true),
   );
   job.progress.listen((pr) => stdout.write('\r${(pr.fraction * 100).toStringAsFixed(1)}%  '
