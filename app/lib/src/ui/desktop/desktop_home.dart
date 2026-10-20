@@ -56,6 +56,7 @@ class _DesktopHomeState extends State<DesktopHome> {
     });
     await _loadBackups();
     await _refreshAdb();
+    _offerResume();
   }
 
   Future<void> _loadBackups() async {
@@ -117,10 +118,59 @@ class _DesktopHomeState extends State<DesktopHome> {
           ? choice
           : await service.connectManual('127.0.0.1', port: AdbBridge.pcToPhonePort);
       final files = await BackupStore.filesToRestore(dir);
-      await service.send(target, files);
-      _snack(service.sendState == SendState.done ? 'Restore complete.' : service.interruptText(service.sendResult?.interruptReason));
+      await service.send(target, files, options: {'backupDir': dir});
+      _afterRestore();
     } catch (e) {
       _snack('$e');
+    }
+  }
+
+  void _afterRestore() {
+    if (service.sendState == SendState.done) {
+      _snack('Restore complete.');
+    } else {
+      _offerResume();
+    }
+  }
+
+  /// An interrupted restore (also from before an app restart) gets a
+  /// banner: the checkpoint records the backup folder and the phone.
+  void _offerResume() {
+    final cp = service.checkpoint;
+    final dir = cp?.options['backupDir'];
+    if (!mounted || cp == null || dir is! String) return;
+    final m = ScaffoldMessenger.of(context)..clearMaterialBanners();
+    m.showMaterialBanner(
+      MaterialBanner(
+        leading: const Icon(Icons.pause_circle_outline_rounded),
+        content: Text('Restore to ${cp.peerAlias} stopped at ${cp.doneFiles} of ${cp.totalFiles} files. '
+            '${service.interruptText(cp.interruptReason)}'),
+        actions: [
+          TextButton(onPressed: () => _resumeRestore(dir), child: const Text('Resume')),
+          TextButton(
+            onPressed: () {
+              m.clearMaterialBanners();
+              service.discardCheckpoint();
+            },
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Same phone, any connection: Wi-Fi if it is visible, else the USB link.
+  Future<void> _resumeRestore(String dir) async {
+    final cp = service.checkpoint!;
+    ScaffoldMessenger.of(context).clearMaterialBanners();
+    try {
+      final target = service.peers[cp.peerFingerprint] ??
+          await service.connectManual('127.0.0.1', port: AdbBridge.pcToPhonePort);
+      await service.resume(target: target, files: await BackupStore.filesToRestore(dir));
+      _afterRestore();
+    } catch (e) {
+      _snack('Could not reach ${cp.peerAlias}: $e');
+      _offerResume();
     }
   }
 
