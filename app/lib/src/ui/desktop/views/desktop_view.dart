@@ -381,12 +381,7 @@ class _Sidebar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(gradient: AppColors.heroGradient, borderRadius: BorderRadius.circular(11)),
-              child: const Icon(Icons.copy_all_rounded, color: Colors.white, size: 20),
-            ),
+            Image.asset('assets/logo.png', width: 40, height: 40, filterQuality: FilterQuality.medium),
             const SizedBox(width: 10),
             const Text('HK Cloner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
           ]),
