@@ -27,7 +27,7 @@ batteries.
 - **Security**: TLS with self-signed certificates pinned to the fingerprint from discovery or the QR code, optional PIN, path-traversal checks on every incoming file.
 - **Compatible with LocalSend** for plain files in both directions.
 
-See [docs/PLATFORM_LIMITS.md](docs/PLATFORM_LIMITS.md) for what Android does not allow (Google account credentials, app data, SMS restore rules).
+See [docs/PLATFORM_LIMITS.md](docs/PLATFORM_LIMITS.md) for what Android does not allow (app data, SMS restore rules).
 
 ## Build
 

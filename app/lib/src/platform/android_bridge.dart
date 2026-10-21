@@ -90,14 +90,7 @@ class AndroidBridge {
 
   Future<void> openTetherSettings() => _ch.invokeMethod('openTetherSettings');
   Future<void> openWifiSettings() => _ch.invokeMethod('openWifiSettings');
-  Future<void> openAddGoogleAccount() => _ch.invokeMethod('openAddGoogleAccount');
-  Future<bool> openGoogleSwitch() async => (await _ch.invokeMethod<bool>('openGoogleSwitch'))!;
 
-  /// Account names (no secrets). On Android 8+ the user picks one per call.
-  Future<List<({String name, String? type})>> accounts() async {
-    final list = await _ch.invokeListMethod<Map>('accounts') ?? const [];
-    return [for (final m in list) (name: m['name'] as String, type: m['type'] as String?)];
-  }
 
   /// Local-only hotspot (Android 8+). Null on older versions.
   Future<({String ssid, String? password})?> startLocalHotspot() async {
@@ -193,7 +186,6 @@ abstract final class AndroidPermission {
   static const readVideo = 'android.permission.READ_MEDIA_VIDEO';
   static const readContacts = 'android.permission.READ_CONTACTS';
   static const writeContacts = 'android.permission.WRITE_CONTACTS';
-  static const getAccounts = 'android.permission.GET_ACCOUNTS';
   static const camera = 'android.permission.CAMERA';
   static const fineLocation = 'android.permission.ACCESS_FINE_LOCATION';
   static const nearbyWifi = 'android.permission.NEARBY_WIFI_DEVICES';

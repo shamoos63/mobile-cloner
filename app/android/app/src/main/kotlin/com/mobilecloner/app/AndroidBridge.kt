@@ -1,7 +1,6 @@
 package com.mobilecloner.app
 
 import android.Manifest
-import android.accounts.AccountManager
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -38,15 +37,13 @@ import java.util.concurrent.Executors
  * Everything the Flutter side needs from Android that no plugin covers on
  * API 23+: SAF access to the WhatsApp folder, All-files access, local-only
  * hotspot + joining it from a QR code, tethering settings, system vCard
- * export/import, account names, battery, foreground service.
+ * export/import, battery, foreground service.
  */
 class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHandler {
     companion object {
         const val CHANNEL = "mobile_cloner/android"
         private const val REQ_PERMISSIONS = 7001
         private const val REQ_PICK_TREE = 7002
-        private const val REQ_CHOOSE_ACCOUNT = 7003
-        private const val GOOGLE_SWITCH_PACKAGE = "com.google.android.apps.restore"
     }
 
     private val context: Context = activity.applicationContext
@@ -101,15 +98,6 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                     startSafely(Intent(Settings.ACTION_WIFI_SETTINGS))
                     result.success(null)
                 }
-                "openAddGoogleAccount" -> {
-                    startSafely(
-                        Intent(Settings.ACTION_ADD_ACCOUNT).putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google")),
-                        Intent(Settings.ACTION_SYNC_SETTINGS),
-                    )
-                    result.success(null)
-                }
-                "openGoogleSwitch" -> result.success(launch(GOOGLE_SWITCH_PACKAGE))
-                "accounts" -> accounts(result)
                 "startLocalHotspot" -> startLocalHotspot(result)
                 "stopLocalHotspot" -> {
                     hotspotReservation?.close()
@@ -301,32 +289,7 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                 }
                 result.success(mapOf("uri" to uri.toString(), "basePath" to saf.basePath(uri)))
             }
-            REQ_CHOOSE_ACCOUNT -> {
-                val result = pending.remove(requestCode) ?: return
-                val name = data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
-                val type = data?.getStringExtra(AccountManager.KEY_ACCOUNT_TYPE)
-                result.success(if (resultCode == Activity.RESULT_OK && name != null) listOf(mapOf("name" to name, "type" to type)) else emptyList<Any>())
-            }
         }
-    }
-
-    // --- Accounts ------------------------------------------------------------
-
-    /**
-     * API 23-25: lists every account (GET_ACCOUNTS). API 26+: Android hides
-     * other apps' accounts, so the user picks one in the system chooser;
-     * call again to add more.
-     */
-    private fun accounts(result: MethodChannel.Result) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            val list = AccountManager.get(context).accounts.map { mapOf("name" to it.name, "type" to it.type) }
-            result.success(list)
-            return
-        }
-        val intent = AccountManager.newChooseAccountIntent(null, null, null, null, null, null, null)
-        pending[REQ_CHOOSE_ACCOUNT] = result
-        @Suppress("DEPRECATION")
-        activity.startActivityForResult(intent, REQ_CHOOSE_ACCOUNT)
     }
 
     // --- Hotspot / Wi-Fi -------------------------------------------------------
