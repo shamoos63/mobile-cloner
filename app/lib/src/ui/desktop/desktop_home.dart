@@ -361,6 +361,121 @@ class _DesktopHomeState extends State<DesktopHome> {
           onAdbRefresh: _refreshAdb,
           onRestore: (b) => _restore(b.path!),
           onOpenFolder: (b) => _openFolder(b.path!),
+          onPreview: (b) => _preview(b.path!),
+          onDelete: (b) => _delete(b),
+        );
+      },
+    );
+  }
+
+  Future<void> _delete(BackupCardData b) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.delete_outline_rounded),
+        title: Text('Delete the backup of ${b.alias}?'),
+        content: Text('This removes ${formatBytes(b.totalBytes)} from\n${b.path}\n\nThe phone itself is not touched.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await BackupStore(await service.backupRoot()).deleteBackup(b.path!);
+      _snack('Deleted the backup of ${b.alias}.');
+    } catch (e) {
+      _snack('Could not delete: ${_short(e)}');
+    }
+    await _loadBackups();
+  }
+
+  /// Manifest summary per category, plus a few photo thumbnails.
+  Future<void> _preview(String dir) async {
+    final m = _backups.where((b) => b.$1 == dir).map((b) => b.$2).firstOrNull;
+    if (m == null) return;
+    final thumbs = <File>[];
+    final photos = Directory(p.join(dir, ContentCategory.photos.wireName));
+    if (await photos.exists()) {
+      await for (final e in photos.list(recursive: true, followLinks: false)) {
+        if (e is File && RegExp(r'\.(jpe?g|png|webp|gif|heic)$', caseSensitive: false).hasMatch(e.path)) {
+          thumbs.add(e);
+          if (thumbs.length == 8) break;
+        }
+      }
+    }
+    if (!mounted) return;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        final t = Theme.of(context).textTheme;
+        return AlertDialog(
+          title: Text(m.alias),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    [
+                      if (m.deviceModel != null) m.deviceModel!,
+                      if (m.sdkInt != null) 'Android API ${m.sdkInt}',
+                      'Last backup ${_stamp(m.lastBackup.toLocal())}',
+                    ].join(' · '),
+                    style: t.bodyMedium?.copyWith(color: muted),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final e in m.categories.entries)
+                    if (e.value is Map)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(categoryIcon(ContentCategory.parse(e.key))),
+                        title: Text(categoryLabel(ContentCategory.parse(e.key))),
+                        subtitle: Text([
+                          '${((e.value as Map)['files'] as num?)?.toInt() ?? 0} files',
+                          formatBytes(((e.value as Map)['bytes'] as num?) ?? 0),
+                          if (DateTime.tryParse('${(e.value as Map)['at']}') case final at?) _stamp(at.toLocal()),
+                        ].join(' · ')),
+                      ),
+                  if (thumbs.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text('Photos', style: t.titleSmall),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      for (final f in thumbs)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            f,
+                            width: 116,
+                            height: 116,
+                            fit: BoxFit.cover,
+                            cacheWidth: 232,
+                            errorBuilder: (_, _, _) => Container(
+                              width: 116,
+                              height: 116,
+                              color: muted.withValues(alpha: 0.12),
+                              child: const Icon(Icons.image_not_supported_outlined),
+                            ),
+                          ),
+                        ),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          ],
         );
       },
     );

@@ -103,6 +103,8 @@ class DesktopHomeView extends StatelessWidget {
     this.onAdbRefresh,
     this.onRestore,
     this.onOpenFolder,
+    this.onPreview,
+    this.onDelete,
   });
 
   final String hostName;
@@ -122,6 +124,8 @@ class DesktopHomeView extends StatelessWidget {
   final VoidCallback? onAdbRefresh;
   final void Function(BackupCardData)? onRestore;
   final void Function(BackupCardData)? onOpenFolder;
+  final void Function(BackupCardData)? onPreview;
+  final void Function(BackupCardData)? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +236,13 @@ class DesktopHomeView extends StatelessWidget {
             runSpacing: 20,
             children: [
               for (final b in backups)
-                SizedBox(width: w, child: _BackupCard(data: b, onRestore: onRestore, onOpen: onOpenFolder)),
+                SizedBox(width: w, child: _BackupCard(
+                  data: b,
+                  onRestore: onRestore,
+                  onOpen: onOpenFolder,
+                  onPreview: onPreview,
+                  onDelete: onDelete,
+                )),
             ],
           );
         }),
@@ -602,10 +612,12 @@ class _LiveCard extends StatelessWidget {
 }
 
 class _BackupCard extends StatelessWidget {
-  const _BackupCard({required this.data, this.onRestore, this.onOpen});
+  const _BackupCard({required this.data, this.onRestore, this.onOpen, this.onPreview, this.onDelete});
   final BackupCardData data;
   final void Function(BackupCardData)? onRestore;
   final void Function(BackupCardData)? onOpen;
+  final void Function(BackupCardData)? onPreview;
+  final void Function(BackupCardData)? onDelete;
 
   static const _colors = [AppColors.indigo, AppColors.teal, AppColors.violet, AppColors.amber, AppColors.rose];
 
@@ -617,57 +629,66 @@ class _BackupCard extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
     final total = data.totalBytes == 0 ? 1 : data.totalBytes;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const IconBadge(Icons.smartphone_rounded, size: 46),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(data.alias, style: t.titleMedium),
-                  Text(data.subtitle, style: t.bodySmall?.copyWith(color: muted)),
-                ]),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => onPreview?.call(data),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const IconBadge(Icons.smartphone_rounded, size: 46),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(data.alias, style: t.titleMedium),
+                    Text(data.subtitle, style: t.bodySmall?.copyWith(color: muted)),
+                  ]),
+                ),
+                Text(formatBytes(data.totalBytes), style: t.titleMedium),
+              ]),
+              const SizedBox(height: 18),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: SizedBox(
+                  height: 10,
+                  child: Row(children: [
+                    for (final (i, e) in entries.indexed)
+                      Expanded(flex: (e.value * 1000 ~/ total).clamp(1, 1000), child: Container(color: _colors[i % _colors.length])),
+                  ]),
+                ),
               ),
-              Text(formatBytes(data.totalBytes), style: t.titleMedium),
-            ]),
-            const SizedBox(height: 18),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                height: 10,
-                child: Row(children: [
-                  for (final (i, e) in entries.indexed)
-                    Expanded(flex: (e.value * 1000 ~/ total).clamp(1, 1000), child: Container(color: _colors[i % _colors.length])),
-                ]),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(spacing: 14, runSpacing: 6, children: [
-              for (final (i, e) in entries.indexed)
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: _colors[i % _colors.length], shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Text('${categoryLabel(e.key)} ${formatBytes(e.value)}', style: t.bodySmall),
-                ]),
-            ]),
-            const SizedBox(height: 16),
-            Row(children: [
-              Icon(Icons.schedule_rounded, size: 16, color: muted),
-              const SizedBox(width: 6),
-              Text(data.lastBackup, style: t.bodySmall?.copyWith(color: muted)),
-              const Spacer(),
-              TextButton(onPressed: () => onOpen?.call(data), child: const Text('Open')),
-              const SizedBox(width: 4),
-              FilledButton.tonal(
-                style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
-                onPressed: () => onRestore?.call(data),
-                child: const Text('Restore'),
-              ),
-            ]),
-          ],
+              const SizedBox(height: 12),
+              Wrap(spacing: 14, runSpacing: 6, children: [
+                for (final (i, e) in entries.indexed)
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(width: 8, height: 8, decoration: BoxDecoration(color: _colors[i % _colors.length], shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    Text('${categoryLabel(e.key)} ${formatBytes(e.value)}', style: t.bodySmall),
+                  ]),
+              ]),
+              const SizedBox(height: 16),
+              Row(children: [
+                Icon(Icons.schedule_rounded, size: 16, color: muted),
+                const SizedBox(width: 6),
+                Text(data.lastBackup, style: t.bodySmall?.copyWith(color: muted)),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => onDelete?.call(data),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  tooltip: 'Delete backup',
+                ),
+                TextButton(onPressed: () => onOpen?.call(data), child: const Text('Open')),
+                const SizedBox(width: 4),
+                FilledButton.tonal(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+                  onPressed: () => onRestore?.call(data),
+                  child: const Text('Restore'),
+                ),
+              ]),
+            ],
+          ),
         ),
       ),
     );

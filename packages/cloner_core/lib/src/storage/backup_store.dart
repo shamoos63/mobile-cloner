@@ -126,6 +126,19 @@ class BackupStore {
     return result;
   }
 
+  /// Removes one device backup. Refuses anything that is not a backup
+  /// folder directly under [root].
+  Future<void> deleteBackup(String deviceDir) async {
+    final dir = Directory(p.normalize(deviceDir));
+    if (!p.equals(dir.parent.path, p.normalize(root))) {
+      throw ArgumentError.value(deviceDir, 'deviceDir', 'not a backup under $root');
+    }
+    if (await readManifest(dir.path) == null) {
+      throw ArgumentError.value(deviceDir, 'deviceDir', 'no $manifestName here');
+    }
+    await dir.delete(recursive: true);
+  }
+
   /// Builds the outgoing file list to restore a backup onto a phone.
   static Future<List<OutgoingFile>> filesToRestore(
     String deviceDir, {
