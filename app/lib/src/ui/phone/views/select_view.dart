@@ -158,7 +158,11 @@ class _ItemCard extends StatelessWidget {
                         Text(categoryLabel(item.category), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 2),
                         item.loading
-                            ? Text('Scanning...', style: t.bodySmall?.copyWith(color: muted))
+                            ? Row(children: [
+                                SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: muted)),
+                                const SizedBox(width: 8),
+                                Text('Scanning...', style: t.bodySmall?.copyWith(color: muted)),
+                              ])
                             : Text(details, style: t.bodySmall?.copyWith(color: muted)),
                       ],
                     ),

@@ -49,9 +49,7 @@ class _SelectPageState extends State<SelectPage> {
         return [r.file];
       });
     }
-    for (final v in WhatsAppVariant.values) {
-      _scanWhatsApp(v);
-    }
+    // WhatsApp folders are slow to walk: scanned when first ticked.
   }
 
   void _load(ContentCategory c, Future<List<OutgoingFile>> Function() loader) {
@@ -61,12 +59,20 @@ class _SelectPageState extends State<SelectPage> {
       setState(() {
         _files[c] = files;
         _counts.putIfAbsent(c, () => files.length);
-        if (files.isNotEmpty) _selected.add(c);
+        files.isNotEmpty ? _selected.add(c) : _selected.remove(c);
         _loading.remove(c);
       });
     }).catchError((Object _) {
       if (mounted) setState(() => _loading.remove(c));
     });
+  }
+
+  void _toggle(ContentCategory c, bool on) {
+    setState(() => on ? _selected.add(c) : _selected.remove(c));
+    final variant = WhatsAppVariant.fromCategory(c);
+    if (on && variant != null && !_wa.containsKey(variant) && !_loading.contains(c)) {
+      _scanWhatsApp(variant);
+    }
   }
 
   void _scanWhatsApp(WhatsAppVariant v) {
@@ -114,6 +120,7 @@ class _SelectPageState extends State<SelectPage> {
       category: c,
       selected: _selected.contains(c),
       count: _counts[c],
+      note: variant != null && !_wa.containsKey(variant) && !_loading.contains(c) ? 'Tick to scan' : null,
       bytes: c == ContentCategory.contacts ? null : files.fold<int>(0, (a, f) => a + f.dto.size),
       loading: _loading.contains(c),
       warning: warning,
@@ -152,13 +159,14 @@ class _SelectPageState extends State<SelectPage> {
       targetName: widget.target.info.alias,
       targetIsDesktop: widget.target.info.deviceType == DeviceType.desktop,
       items: [for (final c in categories) _item(c)],
-      onToggle: (c, v) => setState(() => v ? _selected.add(c) : _selected.remove(c)),
+      onToggle: _toggle,
       onStart: _loading.isEmpty && _selected.isNotEmpty ? _start : null,
       whatsAppChatsOnly: _chatsOnly,
       onWhatsAppScope: (v) {
         setState(() => _chatsOnly = v);
+        // Only rescan what was already scanned; the rest scans when ticked.
         for (final variant in WhatsAppVariant.values) {
-          _scanWhatsApp(variant);
+          if (_wa.containsKey(variant)) _scanWhatsApp(variant);
         }
       },
     );
