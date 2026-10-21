@@ -3,14 +3,6 @@ allprojects {
         google()
         mavenCentral()
     }
-    // Google Maven is unreachable from the build Mac; pin to versions in the local Gradle cache.
-    configurations.all {
-        resolutionStrategy {
-            force("androidx.core:core:1.16.0")
-            force("androidx.core:core-ktx:1.16.0")
-            force("androidx.lifecycle:lifecycle-runtime:2.10.0")
-        }
-    }
 }
 
 val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()

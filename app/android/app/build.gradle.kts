@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.mobilecloner.app"
     compileSdk = 36
-    ndkVersion = "28.2.13676358"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -23,9 +23,7 @@ android {
         applicationId = "com.mobilecloner.app"
         // Android 6.0. Flutter 3.32 is the last release that supports API 23;
         // do not upgrade Flutter without dropping Android 6.
-        // The block comment keeps Flutter's minSdk migrator from rewriting 23
-        // to flutter.minSdkVersion (API 24) on every build.
-        minSdk = 23 /* API 23 */
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -45,6 +43,6 @@ flutter {
 }
 
 dependencies {
-    implementation("androidx.documentfile:documentfile:1.0.0")
+    implementation("androidx.documentfile:documentfile:1.0.1")
     implementation("androidx.core:core-ktx:1.13.1")
 }
