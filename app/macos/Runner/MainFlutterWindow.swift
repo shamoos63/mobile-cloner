@@ -7,6 +7,8 @@ class MainFlutterWindow: NSWindow {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
+    // Smallest window the desktop layout is tested at.
+    self.contentMinSize = NSSize(width: 720, height: 560)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

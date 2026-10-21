@@ -207,6 +207,15 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
     }
 
+    case WM_GETMINMAXINFO: {
+      // Smallest window the desktop layout is tested at (720x560 logical).
+      double scale_factor = FlutterDesktopGetDpiForHWND(hwnd) / 96.0;
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      info->ptMinTrackSize.x = Scale(720, scale_factor);
+      info->ptMinTrackSize.y = Scale(560, scale_factor);
+      return 0;
+    }
+
     case WM_ACTIVATE:
       if (child_content_ != nullptr) {
         SetFocus(child_content_);

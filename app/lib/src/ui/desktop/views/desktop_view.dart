@@ -180,17 +180,26 @@ class DesktopHomeView extends StatelessWidget {
   List<Widget> _overview(BuildContext context) => [
     _header(context, 'Backup station', 'Phones on this network or plugged in by USB can back up here.'),
     const SizedBox(height: 28),
-    SizedBox(
-      height: 330,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(flex: 6, child: _connectCard()),
-          const SizedBox(width: 20),
-          Expanded(flex: 5, child: _LiveCard(live: live)),
-        ],
-      ),
-    ),
+    LayoutBuilder(builder: (context, c) {
+      if (c.maxWidth < 1000) {
+        return Column(children: [
+          _connectCard(),
+          const SizedBox(height: 20),
+          SizedBox(height: 240, child: _LiveCard(live: live)),
+        ]);
+      }
+      return SizedBox(
+        height: 330,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(flex: 6, child: _connectCard()),
+            const SizedBox(width: 20),
+            Expanded(flex: 5, child: _LiveCard(live: live)),
+          ],
+        ),
+      );
+    }),
     const SizedBox(height: 18),
     ..._backupGrid(context),
   ];
@@ -229,7 +238,7 @@ class DesktopHomeView extends StatelessWidget {
         )
       else
         LayoutBuilder(builder: (context, c) {
-          final cols = c.maxWidth > 900 ? 3 : (c.maxWidth > 560 ? 2 : 1);
+          final cols = c.maxWidth > 1100 ? 3 : (c.maxWidth > 700 ? 2 : 1);
           final w = (c.maxWidth - (cols - 1) * 20) / cols;
           return Wrap(
             spacing: 20,
@@ -255,7 +264,7 @@ class DesktopHomeView extends StatelessWidget {
     return [
       _header(context, 'Devices', 'Phones plugged in by USB or running HK Cloner on this network.'),
       const SizedBox(height: 28),
-      SizedBox(height: 330, child: _connectCard()),
+      _connectCard(),
       Padding(
         padding: const EdgeInsets.fromLTRB(4, 32, 4, 14),
         child: Text('Nearby on Wi-Fi', style: t.titleLarge),
@@ -455,91 +464,102 @@ class _ConnectCard extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     return HeroSurface(
       padding: const EdgeInsets.all(28),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-            child: pairing == null
-                ? const SizedBox(width: 150, height: 150)
-                : QrImageView(
-                    data: pairing!.encode(),
-                    size: 150,
-                    padding: EdgeInsets.zero,
-                    eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.circle, color: Color(0xFF1E1B4B)),
-                    dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.circle, color: Color(0xFF1E1B4B)),
-                  ),
-          ),
-          const SizedBox(width: 28),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Connect a phone', style: t.titleLarge?.copyWith(color: Colors.white)),
-                const SizedBox(height: 6),
-                Text('Wireless: scan the code with HK Cloner, or pick "$hostName" from the list on the phone.',
-                    style: t.bodyMedium?.copyWith(color: Colors.white70, height: 1.4)),
-                const SizedBox(height: 18),
-                Row(children: [
-                  const Icon(Icons.usb_rounded, size: 18),
-                  const SizedBox(width: 8),
-                  Text('USB cable', style: t.titleSmall?.copyWith(color: Colors.white)),
-                  const Spacer(),
-                  IconButton(onPressed: onAdbRefresh, color: Colors.white, icon: const Icon(Icons.refresh_rounded, size: 20), tooltip: 'Look for phones'),
-                ]),
-                const SizedBox(height: 6),
-                if (adbDevices.isEmpty)
-                  Text('Plug in a phone with USB debugging on. HK Cloner installs and opens on it by itself.', style: t.bodySmall?.copyWith(color: Colors.white60))
-                else
-                  for (final d in adbDevices)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
-                      child: Row(children: [
-                        const Icon(Icons.smartphone_rounded, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(d.name ?? d.serial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                              if (d.status != null)
-                                Text(d.status!, style: t.bodySmall?.copyWith(color: Colors.white70)),
-                            ],
-                          ),
-                        ),
-                        d.busy
-                            ? const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                ),
-                              )
-                            : d.connected
-                            ? const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                child: Text('Linked', style: TextStyle(color: Color(0xFF99F6E4), fontWeight: FontWeight.w700)),
-                              )
-                            : FilledButton(
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(0, 38),
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: AppColors.indigo,
-                                ),
-                                onPressed: () => onAdbConnect?.call(d.serial),
-                                child: const Text('Retry'),
-                              ),
-                      ]),
+      child: LayoutBuilder(builder: (context, c) {
+        final qrSize = (c.maxWidth - 24).clamp(80.0, 150.0);
+        final qr = Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+          child: pairing == null
+              ? SizedBox(width: qrSize, height: qrSize)
+              : QrImageView(
+                  data: pairing!.encode(),
+                  size: qrSize,
+                  padding: EdgeInsets.zero,
+                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.circle, color: Color(0xFF1E1B4B)),
+                  dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.circle, color: Color(0xFF1E1B4B)),
+                ),
+        );
+        final details = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Connect a phone', style: t.titleLarge?.copyWith(color: Colors.white)),
+            const SizedBox(height: 6),
+            Text('Wireless: scan the code with HK Cloner, or pick "$hostName" from the list on the phone.',
+                style: t.bodyMedium?.copyWith(color: Colors.white70, height: 1.4)),
+            const SizedBox(height: 18),
+            Row(children: [
+              const Icon(Icons.usb_rounded, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text('USB cable', style: t.titleSmall?.copyWith(color: Colors.white), overflow: TextOverflow.ellipsis)),
+              IconButton(onPressed: onAdbRefresh, color: Colors.white, icon: const Icon(Icons.refresh_rounded, size: 20), tooltip: 'Look for phones'),
+            ]),
+            const SizedBox(height: 6),
+            if (adbDevices.isEmpty)
+              Text('Plug in a phone with USB debugging on. HK Cloner installs and opens on it by itself.', style: t.bodySmall?.copyWith(color: Colors.white60))
+            else
+              for (final d in adbDevices)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
+                  child: Row(children: [
+                    const Icon(Icons.smartphone_rounded, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(d.name ?? d.serial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          if (d.status != null)
+                            Text(d.status!, style: t.bodySmall?.copyWith(color: Colors.white70)),
+                        ],
+                      ),
                     ),
-              ],
-            ),
-          ),
-        ],
-      ),
+                    d.busy
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            ),
+                          )
+                        : d.connected
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            child: Text('Linked', style: TextStyle(color: Color(0xFF99F6E4), fontWeight: FontWeight.w700)),
+                          )
+                        : FilledButton(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 38),
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.indigo,
+                            ),
+                            onPressed: () => onAdbConnect?.call(d.serial),
+                            child: const Text('Retry'),
+                          ),
+                  ]),
+                ),
+          ],
+        );
+        // Narrow panel: QR on top, text below, no fixed height.
+        if (c.maxWidth < 440) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [Center(child: qr), const SizedBox(height: 20), details],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            qr,
+            const SizedBox(width: 28),
+            Expanded(child: c.hasBoundedHeight ? SingleChildScrollView(child: details) : details),
+          ],
+        );
+      }),
     );
   }
 }
@@ -606,7 +626,7 @@ class _LiveCard extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(children: [
       SizedBox(width: 84, child: Text(k, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))),
-      Text(v, style: const TextStyle(fontWeight: FontWeight.w700)),
+      Flexible(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
     ]),
   );
 }
@@ -669,24 +689,33 @@ class _BackupCard extends StatelessWidget {
                   ]),
               ]),
               const SizedBox(height: 16),
-              Row(children: [
-                Icon(Icons.schedule_rounded, size: 16, color: muted),
-                const SizedBox(width: 6),
-                Text(data.lastBackup, style: t.bodySmall?.copyWith(color: muted)),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => onDelete?.call(data),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  tooltip: 'Delete backup',
-                ),
-                TextButton(onPressed: () => onOpen?.call(data), child: const Text('Open')),
-                const SizedBox(width: 4),
-                FilledButton.tonal(
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
-                  onPressed: () => onRestore?.call(data),
-                  child: const Text('Restore'),
-                ),
-              ]),
+              // Wraps the buttons under the date when the card is narrow.
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                runSpacing: 8,
+                children: [
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.schedule_rounded, size: 16, color: muted),
+                    const SizedBox(width: 6),
+                    Text(data.lastBackup, style: t.bodySmall?.copyWith(color: muted)),
+                  ]),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(
+                      onPressed: () => onDelete?.call(data),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      tooltip: 'Delete backup',
+                    ),
+                    TextButton(onPressed: () => onOpen?.call(data), child: const Text('Open')),
+                    const SizedBox(width: 4),
+                    FilledButton.tonal(
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+                      onPressed: () => onRestore?.call(data),
+                      child: const Text('Restore'),
+                    ),
+                  ]),
+                ],
+              ),
             ],
           ),
         ),
