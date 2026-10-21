@@ -4,7 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../platform/android_bridge.dart';
 
-/// Scans a Mobile Cloner pairing QR code and returns it.
+/// Scans a HK Cloner pairing QR code and returns it.
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
 

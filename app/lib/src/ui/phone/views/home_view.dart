@@ -65,7 +65,7 @@ class PhoneHomeView extends StatelessWidget {
                   child: const Icon(Icons.copy_all_rounded, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 10),
-                Text('Mobile Cloner', style: t.titleLarge),
+                Text('HK Cloner', style: t.titleLarge),
                 const Spacer(),
                 IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined)),
               ],

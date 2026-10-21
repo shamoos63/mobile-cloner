@@ -110,7 +110,7 @@ class _ConnectPageState extends State<ConnectPage> {
                     child: Row(children: [
                       const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                       const SizedBox(width: 16),
-                      Expanded(child: Text('Looking for devices. On the other device, open Mobile Cloner and tap Receive.',
+                      Expanded(child: Text('Looking for devices. On the other device, open HK Cloner and tap Receive.',
                           style: t.bodyMedium)),
                     ]),
                   ),
@@ -149,7 +149,7 @@ class _ConnectPageState extends State<ConnectPage> {
                         : () => _pick(() => service.connectManual('127.0.0.1', port: AdbBridge.phoneToPcPort)),
                     leading: const IconBadge(Icons.usb_rounded, size: 44, color: AppColors.violet),
                     title: const Text('Computer over USB'),
-                    subtitle: const Text('Click "Link" in Mobile Cloner on the computer first'),
+                    subtitle: const Text('Click "Link" in HK Cloner on the computer first'),
                   ),
                   ListTile(
                     onTap: _busy ? null : _manual,

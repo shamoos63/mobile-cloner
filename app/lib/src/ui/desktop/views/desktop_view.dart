@@ -59,7 +59,7 @@ class AdbDeviceData {
   /// Model name when adb reports it.
   final String? name;
 
-  /// What the automatic setup is doing or needs ("Installing Mobile Cloner").
+  /// What the automatic setup is doing or needs ("Installing HK Cloner").
   final String? status;
   final bool busy;
 }
@@ -219,7 +219,7 @@ class DesktopHomeView extends StatelessWidget {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Center(child: Text('No backups yet. Open Mobile Cloner on a phone and tap "Back up to computer".',
+            child: Center(child: Text('No backups yet. Open HK Cloner on a phone and tap "Back up to computer".',
                 style: t.bodyMedium)),
           ),
         )
@@ -243,7 +243,7 @@ class DesktopHomeView extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return [
-      _header(context, 'Devices', 'Phones plugged in by USB or running Mobile Cloner on this network.'),
+      _header(context, 'Devices', 'Phones plugged in by USB or running HK Cloner on this network.'),
       const SizedBox(height: 28),
       SizedBox(height: 330, child: _connectCard()),
       Padding(
@@ -254,7 +254,7 @@ class DesktopHomeView extends StatelessWidget {
         child: nearby.isEmpty
             ? Padding(
                 padding: const EdgeInsets.all(32),
-                child: Center(child: Text('No phones found yet. Open Mobile Cloner on a phone on the same network.',
+                child: Center(child: Text('No phones found yet. Open HK Cloner on a phone on the same network.',
                     style: t.bodyMedium?.copyWith(color: muted))),
               )
             : Column(children: [
@@ -318,7 +318,7 @@ class DesktopHomeView extends StatelessWidget {
         child: Column(children: [
           ListTile(
             leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('Mobile Cloner'),
+            title: const Text('HK Cloner'),
             subtitle: Text(appVersion.isEmpty ? 'Desktop backup station' : 'Version $appVersion'),
           ),
           ListTile(
@@ -388,7 +388,7 @@ class _Sidebar extends StatelessWidget {
               child: const Icon(Icons.copy_all_rounded, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Mobile Cloner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
+            const Text('HK Cloner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
           ]),
           const SizedBox(height: 36),
           item(Icons.space_dashboard_rounded, 'Overview', DesktopSection.overview),
@@ -473,7 +473,7 @@ class _ConnectCard extends StatelessWidget {
               children: [
                 Text('Connect a phone', style: t.titleLarge?.copyWith(color: Colors.white)),
                 const SizedBox(height: 6),
-                Text('Wireless: scan the code with Mobile Cloner, or pick "$hostName" from the list on the phone.',
+                Text('Wireless: scan the code with HK Cloner, or pick "$hostName" from the list on the phone.',
                     style: t.bodyMedium?.copyWith(color: Colors.white70, height: 1.4)),
                 const SizedBox(height: 18),
                 Row(children: [
@@ -485,7 +485,7 @@ class _ConnectCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 6),
                 if (adbDevices.isEmpty)
-                  Text('Plug in a phone with USB debugging on. Mobile Cloner installs and opens on it by itself.', style: t.bodySmall?.copyWith(color: Colors.white60))
+                  Text('Plug in a phone with USB debugging on. HK Cloner installs and opens on it by itself.', style: t.bodySmall?.copyWith(color: Colors.white60))
                 else
                   for (final d in adbDevices)
                     Container(

@@ -58,7 +58,7 @@ class ReceiveView extends StatelessWidget {
                   const SizedBox(height: 18),
                   Text(deviceName, style: t.titleLarge?.copyWith(color: Colors.white)),
                   const SizedBox(height: 4),
-                  Text('Scan this with Mobile Cloner on your old phone',
+                  Text('Scan this with HK Cloner on your old phone',
                       style: t.bodyMedium?.copyWith(color: Colors.white70), textAlign: TextAlign.center),
                   if (pairing != null) ...[
                     const SizedBox(height: 12),

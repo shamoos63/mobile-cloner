@@ -103,19 +103,19 @@ class _DesktopHomeState extends State<DesktopHome> {
     }
   }
 
-  /// Plugged in: install Mobile Cloner if it's missing or older, open it,
+  /// Plugged in: install HK Cloner if it's missing or older, open it,
   /// and map the ports so it links to this computer by itself.
   Future<void> _link(String serial) async {
     setState(() {
       _adbBusy.add(serial);
-      _adbStatus[serial] = 'Checking for Mobile Cloner...';
+      _adbStatus[serial] = 'Checking for HK Cloner...';
     });
     try {
       final apk = _bundledApk();
       final installed = await adb.installedVersion(serial, androidPackage);
       if (installed == null || installed < appVersionCode) {
         if (apk != null && mounted) {
-          setState(() => _adbStatus[serial] = installed == null ? 'Installing Mobile Cloner...' : 'Updating Mobile Cloner...');
+          setState(() => _adbStatus[serial] = installed == null ? 'Installing HK Cloner...' : 'Updating HK Cloner...');
         }
       }
       final r = await adb.ensureAppRunning(
@@ -133,7 +133,7 @@ class _DesktopHomeState extends State<DesktopHome> {
           AppSetupResult.updated => 'Updated and opened. Choose what to back up on the phone.',
           AppSetupResult.alreadyInstalled => 'Opened on the phone. Choose what to back up there.',
           AppSetupResult.outdatedNoApk => 'Opened (older version on the phone).',
-          AppSetupResult.missingApk => 'Mobile Cloner is not on the phone. Install the APK, then Retry.',
+          AppSetupResult.missingApk => 'HK Cloner is not on the phone. Install the APK, then Retry.',
         };
       });
     } catch (e) {
@@ -193,7 +193,7 @@ class _DesktopHomeState extends State<DesktopHome> {
           if (targets.isEmpty && _linked.isEmpty)
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('Open Mobile Cloner on the phone and tap "Restore from computer", or link it by USB.'),
+              child: Text('Open HK Cloner on the phone and tap "Restore from computer", or link it by USB.'),
             ),
         ],
       ),

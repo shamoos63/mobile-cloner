@@ -17,7 +17,7 @@ class MobileClonerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mobile Cloner',
+      title: 'HK Cloner',
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
