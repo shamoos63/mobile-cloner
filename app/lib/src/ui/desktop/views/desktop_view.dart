@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../services/format.dart';
 import '../../theme.dart';
+import '../../widgets/credits.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/visuals.dart';
 
@@ -351,6 +352,33 @@ class DesktopHomeView extends StatelessWidget {
             subtitle: Text('Transfers are end-to-end encrypted on your local network.', style: TextStyle(color: muted)),
           ),
         ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 32, 4, 14),
+        child: Text('About', style: Theme.of(context).textTheme.titleLarge),
+      ),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.asset('assets/logo.png', width: 56, height: 56, filterQuality: FilterQuality.medium),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('HK Cloner', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Coded and designed by $authorName', style: TextStyle(color: muted)),
+                    const SizedBox(height: 8),
+                    const Credits(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ];
   }

@@ -95,6 +95,7 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                     )
                     result.success(null)
                 }
+                "openUrl" -> result.success(startSafely(Intent(Intent.ACTION_VIEW, Uri.parse(call.argument<String>("url")!!))))
                 "openWifiSettings" -> {
                     startSafely(Intent(Settings.ACTION_WIFI_SETTINGS))
                     result.success(null)

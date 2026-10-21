@@ -2,6 +2,7 @@ import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
+import '../../widgets/credits.dart';
 import '../../widgets/visuals.dart';
 
 class ResumeInfo {
@@ -148,6 +149,8 @@ class PhoneHomeView extends StatelessWidget {
                 ),
               ),
             ],
+            const SizedBox(height: 28),
+            const Credits(compact: true),
           ],
         ),
       ),

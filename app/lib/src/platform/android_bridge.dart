@@ -90,6 +90,7 @@ class AndroidBridge {
 
   Future<void> openTetherSettings() => _ch.invokeMethod('openTetherSettings');
   Future<void> openWifiSettings() => _ch.invokeMethod('openWifiSettings');
+  Future<bool> openUrl(String url) async => (await _ch.invokeMethod<bool>('openUrl', {'url': url})) ?? false;
 
 
   /// Local-only hotspot (Android 8+). Null on older versions.
