@@ -48,6 +48,7 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
 
     private val context: Context = activity.applicationContext
     private val saf = SafStore(context)
+    private val wallpapers = Wallpapers(context)
     private val io = Executors.newCachedThreadPool()
     private val main = Handler(Looper.getMainLooper())
     private val pending = HashMap<Int, MethodChannel.Result>()
@@ -136,6 +137,10 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                 }
                 "exportContacts" -> background(result) { exportContacts(call.argument<String>("path")!!) }
                 "importVcf" -> result.success(importVcf(call.argument<String>("path")!!))
+                "exportWallpapers" -> background(result) { wallpapers.export(call.argument<String>("dir")!!) }
+                "applyWallpapers" -> background(result) {
+                    wallpapers.apply(call.argument<String>("home"), call.argument<String>("lock"))
+                }
 
                 // Storage Access Framework
                 "safPickTree" -> pickTree(call.argument<String>("initialPath"), result)

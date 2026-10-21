@@ -115,6 +115,17 @@ class AndroidBridge {
   Future<int> exportContacts(String path) async => (await _ch.invokeMethod<int>('exportContacts', {'path': path}))!;
   Future<bool> importVcf(String path) async => (await _ch.invokeMethod<bool>('importVcf', {'path': path}))!;
 
+  /// Copies the wallpapers into [dir]. `lock` is null when the lock screen
+  /// uses the home wallpaper; `error: permission` when Android refuses.
+  Future<({String? home, String? lock, bool denied})> exportWallpapers(String dir) async {
+    final m = (await _ch.invokeMapMethod<String, Object?>('exportWallpapers', {'dir': dir}))!;
+    return (home: m['home'] as String?, lock: m['lock'] as String?, denied: m['error'] == 'permission');
+  }
+
+  /// Sets the home wallpaper (both screens when [lock] is null) and [lock].
+  Future<bool> applyWallpapers({String? home, String? lock}) async =>
+      (await _ch.invokeMethod<bool>('applyWallpapers', {'home': home, 'lock': lock})) ?? false;
+
   // --- Storage Access Framework ---
 
   Future<SafTree?> pickTree({String? initialPath}) async {

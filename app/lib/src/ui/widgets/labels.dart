@@ -12,6 +12,7 @@ String categoryLabel(ContentCategory c) => switch (c) {
   ContentCategory.callLogs => 'Call logs',
   ContentCategory.documents => 'Documents',
   ContentCategory.audio => 'Music',
+  ContentCategory.wallpaper => 'Wallpaper',
   ContentCategory.files => 'Files',
 };
 
@@ -26,6 +27,7 @@ IconData categoryIcon(ContentCategory c) => switch (c) {
   ContentCategory.callLogs => Icons.call_outlined,
   ContentCategory.documents => Icons.description_outlined,
   ContentCategory.audio => Icons.music_note_outlined,
+  ContentCategory.wallpaper => Icons.wallpaper_outlined,
   ContentCategory.files => Icons.folder_outlined,
 };
 

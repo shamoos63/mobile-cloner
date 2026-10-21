@@ -80,6 +80,7 @@ class AndroidRestorePlanner {
       case ContentCategory.apps:
       case ContentCategory.messages:
       case ContentCategory.callLogs:
+      case ContentCategory.wallpaper:
         return DeferredTarget(file.category, rel);
       case ContentCategory.files:
         return SharedStorageTarget(path: 'Download/$downloadsSubdir/$rel', needsSpecialAccess: false);

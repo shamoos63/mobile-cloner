@@ -11,6 +11,9 @@ enum ContentCategory {
   documents('documents'),
   audio('audio'),
 
+  /// Home and lock screen wallpaper images, applied on the receiver.
+  wallpaper('wallpaper'),
+
   /// Plain files, including anything a stock LocalSend client sends.
   files('files');
 

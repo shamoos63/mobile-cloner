@@ -3,6 +3,7 @@ import 'package:cloner_core/cloner_core.dart';
 import '../platform/android_bridge.dart';
 import 'contacts_source.dart';
 import 'media_source.dart';
+import 'wallpaper_source.dart';
 import 'whatsapp_source.dart';
 
 /// Rebuilds the outgoing file list after an app restart from what the
@@ -21,6 +22,8 @@ Future<List<OutgoingFile>> rebuildFiles(AndroidBridge bridge, TransferCheckpoint
         final scan = await WhatsAppSource(bridge)
             .scan(WhatsAppVariant.fromCategory(c)!, chatsOnly ? WhatsAppScope.chatsOnly : WhatsAppScope.full);
         files.addAll(scan.files);
+      case ContentCategory.wallpaper:
+        files.addAll((await WallpaperSource(bridge).export()).files);
       default:
         break;
     }

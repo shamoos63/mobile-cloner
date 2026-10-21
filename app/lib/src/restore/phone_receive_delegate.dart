@@ -15,6 +15,7 @@ class RestoreReport {
   final ReceiveSession session;
   int contactsFiles = 0;
   bool contactsImportOpened = false;
+  bool wallpaperSet = false;
   final Set<WhatsAppVariant> whatsApp = {};
   final List<String> problems = [];
 }
@@ -86,6 +87,7 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
     await journal.flush();
     final report = RestoreReport(session);
     final scanPaths = <String>[];
+    final wallpapers = <String, String>{};
     for (final status in session.files.values) {
       if (status.state != FileState.done) continue;
       final file = status.file;
@@ -96,6 +98,8 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
           if (whatsApp == null) scanPaths.add(p.join(info.storageRoot, path));
         case DeferredTarget(category: ContentCategory.contacts):
           report.contactsFiles++;
+        case DeferredTarget(category: ContentCategory.wallpaper, :final relPath):
+          wallpapers[p.basenameWithoutExtension(relPath)] = p.join(stagingDir, ContentCategory.wallpaper.wireName, relPath);
         default:
           break;
       }
@@ -106,6 +110,13 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
       if (await File(vcf).exists()) {
         report.contactsImportOpened = await bridge.importVcf(vcf);
         if (!report.contactsImportOpened) report.problems.add('No Contacts app found to import contacts.vcf.');
+      }
+    }
+    if (wallpapers.isNotEmpty) {
+      try {
+        report.wallpaperSet = await bridge.applyWallpapers(home: wallpapers['home'], lock: wallpapers['lock']);
+      } catch (e) {
+        report.problems.add('Could not set the wallpaper: $e');
       }
     }
     onReport(report);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../services/cloner_service.dart';
 import '../../sources/contacts_source.dart';
 import '../../sources/media_source.dart';
+import '../../sources/wallpaper_source.dart';
 import '../../sources/whatsapp_source.dart';
 import 'transfer_page.dart';
 import 'views/select_view.dart';
@@ -17,11 +18,12 @@ class SelectPage extends StatefulWidget {
   State<SelectPage> createState() => _SelectPageState();
 }
 
-class _SelectPageState extends State<SelectPage> {
+class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
   final service = ClonerService.instance;
   late final media = MediaSource(service.bridge);
   late final contacts = ContactsSource(service.bridge);
   late final whatsapp = WhatsAppSource(service.bridge);
+  late final wallpaper = WallpaperSource(service.bridge);
 
   final Map<ContentCategory, List<OutgoingFile>> _files = {};
   final Map<ContentCategory, int> _counts = {};
@@ -29,11 +31,27 @@ class _SelectPageState extends State<SelectPage> {
   final Set<ContentCategory> _loading = {};
   final Map<WhatsAppVariant, WhatsAppScan> _wa = {};
   bool _chatsOnly = false;
+  bool _wallpaperDenied = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scanAll();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Back from the All-files access screen: try the wallpaper again.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _wallpaperDenied && !_loading.contains(ContentCategory.wallpaper)) {
+      _scanWallpaper();
+    }
   }
 
   Future<void> _scanAll() async {
@@ -49,17 +67,31 @@ class _SelectPageState extends State<SelectPage> {
         return [r.file];
       });
     }
+    _scanWallpaper();
     // WhatsApp folders are slow to walk: scanned when first ticked.
   }
 
-  void _load(ContentCategory c, Future<List<OutgoingFile>> Function() loader) {
+  /// Off by default: changing the new phone's wallpaper is opt-in.
+  void _scanWallpaper() {
+    _load(ContentCategory.wallpaper, select: false, () async {
+      final r = await wallpaper.export();
+      _wallpaperDenied = r.denied;
+      return r.files;
+    });
+  }
+
+  void _load(ContentCategory c, Future<List<OutgoingFile>> Function() loader, {bool select = true}) {
     setState(() => _loading.add(c));
     loader().then((files) {
       if (!mounted) return;
       setState(() {
         _files[c] = files;
         _counts.putIfAbsent(c, () => files.length);
-        files.isNotEmpty ? _selected.add(c) : _selected.remove(c);
+        if (files.isEmpty) {
+          _selected.remove(c);
+        } else if (select) {
+          _selected.add(c);
+        }
         _loading.remove(c);
       });
     }).catchError((Object _) {
@@ -116,6 +148,11 @@ class _SelectPageState extends State<SelectPage> {
         }
       }
     }
+    if (c == ContentCategory.wallpaper && _wallpaperDenied) {
+      warning = 'Android only shares the wallpaper with apps that have All-files access.';
+      action = 'Allow';
+      onAction = service.bridge.requestAllFilesAccess;
+    }
     return SelectableItem(
       category: c,
       selected: _selected.contains(c),
@@ -138,6 +175,7 @@ class _SelectPageState extends State<SelectPage> {
         ContentCategory.whatsappBusiness,
         ContentCategory.photos,
         ContentCategory.videos,
+        ContentCategory.wallpaper,
       ])
         if (_selected.contains(c)) ...?_files[c],
     ];
@@ -154,6 +192,7 @@ class _SelectPageState extends State<SelectPage> {
       ContentCategory.contacts,
       ContentCategory.whatsapp,
       ContentCategory.whatsappBusiness,
+      ContentCategory.wallpaper,
     ];
     return SelectContentView(
       targetName: widget.target.info.alias,

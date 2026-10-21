@@ -205,6 +205,16 @@ class _ReportView extends StatelessWidget {
               ),
             ),
           ],
+          if (report.wallpaperSet) ...[
+            const SectionLabel('Wallpaper'),
+            const Card(
+              child: ListTile(
+                leading: IconBadge(Icons.wallpaper_outlined, size: 40),
+                title: Text('Wallpaper set'),
+                subtitle: Text('The home and lock screens now match your old phone.'),
+              ),
+            ),
+          ],
           for (final p in report.problems)
             Padding(padding: const EdgeInsets.only(top: 12), child: Text(p, style: TextStyle(color: Theme.of(context).colorScheme.error))),
           const SizedBox(height: 20),
