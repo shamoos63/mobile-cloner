@@ -70,6 +70,11 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                         "storageRoot" to Environment.getExternalStorageDirectory().absolutePath,
                     ),
                 )
+                "takeLaunchLink" -> {
+                    val link = activity.intent?.getStringExtra("cloner_link")
+                    activity.intent?.removeExtra("cloner_link")
+                    result.success(link)
+                }
                 "battery" -> result.success(battery())
                 "freeBytes" -> result.success(StatFs(Environment.getExternalStorageDirectory().path).availableBytes)
                 "requestPermissions" -> requestPermissions(call.argument<List<String>>("permissions") ?: emptyList(), result)

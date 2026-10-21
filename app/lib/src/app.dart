@@ -7,6 +7,7 @@ import 'ui/desktop/desktop_home.dart';
 import 'ui/phone/phone_home.dart';
 import 'ui/theme.dart';
 import 'ui/widgets/incoming_request_listener.dart';
+import 'ui/widgets/usb_link_listener.dart';
 
 class MobileClonerApp extends StatelessWidget {
   const MobileClonerApp({super.key});
@@ -38,7 +39,7 @@ class MobileClonerApp extends StatelessWidget {
               children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Preparing secure connection...')],
             )));
           }
-          return Platform.isAndroid ? const PhoneHome() : const DesktopHome();
+          return Platform.isAndroid ? const UsbLinkListener(child: PhoneHome()) : const DesktopHome();
         },
       ),
     );

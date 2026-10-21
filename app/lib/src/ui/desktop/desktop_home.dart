@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloner_core/cloner_core.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../services/cloner_service.dart';
+import '../../version.dart';
 import 'views/desktop_view.dart';
 
 class DesktopHome extends StatefulWidget {
@@ -17,12 +19,20 @@ class DesktopHome extends StatefulWidget {
 
 class _DesktopHomeState extends State<DesktopHome> {
   final service = ClonerService.instance;
-  final adb = AdbBridge();
+  final adb = AdbBridge(adbPath: AdbBridge.locate(besides: _bundleDir()));
   PairingCode? _pairing;
   List<String> _addresses = [];
   List<(String, BackupManifest)> _backups = [];
-  List<String> _adbSerials = [];
+  List<AdbDevice> _adbDevices = [];
   final Set<String> _linked = {};
+
+  /// Per-phone setup state shown on the USB row.
+  final Map<String, String> _adbStatus = {};
+  final Set<String> _adbBusy = {};
+
+  /// Phones already set up while plugged in; unplugging clears them.
+  final Set<String> _handled = {};
+  Timer? _adbPoll;
   String _folder = '';
 
   @override
@@ -30,10 +40,12 @@ class _DesktopHomeState extends State<DesktopHome> {
     super.initState();
     _refresh();
     service.addListener(_onService);
+    _adbPoll = Timer.periodic(const Duration(seconds: 3), (_) => _refreshAdb());
   }
 
   @override
   void dispose() {
+    _adbPoll?.cancel();
     service.removeListener(_onService);
     super.dispose();
   }
@@ -65,22 +77,93 @@ class _DesktopHomeState extends State<DesktopHome> {
   }
 
   Future<void> _refreshAdb() async {
+    List<AdbDevice> list;
     try {
-      final serials = await adb.devices();
-      if (mounted) setState(() => _adbSerials = serials);
+      list = await adb.list();
     } catch (_) {
-      if (mounted) setState(() => _adbSerials = []);
+      list = []; // adb missing: the row explains how to connect instead.
+    }
+    if (!mounted) return;
+    final present = {for (final d in list) d.serial};
+    _handled.removeWhere((s) => !present.contains(s));
+    _linked.removeWhere((s) => !present.contains(s));
+    _adbStatus.removeWhere((s, _) => !present.contains(s));
+    for (final d in list) {
+      if (d.unauthorized) _adbStatus[d.serial] = 'Tap "Allow" on the phone to trust this computer';
+    }
+    setState(() => _adbDevices = list);
+    for (final d in list) {
+      if (d.ready && !_handled.contains(d.serial)) {
+        _handled.add(d.serial);
+        unawaited(_link(d.serial));
+      }
     }
   }
 
+  /// Plugged in: install Mobile Cloner if it's missing or older, open it,
+  /// and map the ports so it links to this computer by itself.
   Future<void> _link(String serial) async {
+    setState(() {
+      _adbBusy.add(serial);
+      _adbStatus[serial] = 'Checking for Mobile Cloner...';
+    });
     try {
-      await adb.connect(serial);
-      setState(() => _linked.add(serial));
-      _snack('Linked. On the phone choose "Back up to computer" > "Computer over USB".');
+      final apk = _bundledApk();
+      final installed = await adb.installedVersion(serial, androidPackage);
+      if (installed == null || installed < appVersionCode) {
+        if (apk != null && mounted) {
+          setState(() => _adbStatus[serial] = installed == null ? 'Installing Mobile Cloner...' : 'Updating Mobile Cloner...');
+        }
+      }
+      final r = await adb.ensureAppRunning(
+        serial,
+        package: androidPackage,
+        activity: androidActivity,
+        versionCode: appVersionCode,
+        apkPath: apk,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (r.ok) _linked.add(serial);
+        _adbStatus[serial] = switch (r) {
+          AppSetupResult.installed => 'Installed and opened. Choose what to back up on the phone.',
+          AppSetupResult.updated => 'Updated and opened. Choose what to back up on the phone.',
+          AppSetupResult.alreadyInstalled => 'Opened on the phone. Choose what to back up there.',
+          AppSetupResult.outdatedNoApk => 'Opened (older version on the phone).',
+          AppSetupResult.missingApk => 'Mobile Cloner is not on the phone. Install the APK, then Retry.',
+        };
+      });
     } catch (e) {
-      _snack('$e');
+      if (mounted) setState(() => _adbStatus[serial] = 'Setup failed: ${_short(e)}');
+    } finally {
+      if (mounted) setState(() => _adbBusy.remove(serial));
     }
+  }
+
+  static String _short(Object e) {
+    final text = '$e'.replaceFirst('AdbException: ', '').trim();
+    return text.length > 90 ? '${text.substring(0, 90)}...' : text;
+  }
+
+  /// Folder holding files shipped with the desktop app (APK, adb).
+  static String _bundleDir() {
+    final exeDir = File(Platform.resolvedExecutable).parent.path;
+    // macOS: Foo.app/Contents/MacOS/Foo -> Foo.app/Contents/Resources
+    return Platform.isMacOS ? p.normalize(p.join(exeDir, '..', 'Resources')) : exeDir;
+  }
+
+  /// The phone APK shipped with this desktop build (CI copies it in), or
+  /// MOBILE_CLONER_APK for development.
+  static String? _bundledApk() {
+    final candidates = [
+      Platform.environment['MOBILE_CLONER_APK'],
+      p.join(_bundleDir(), 'mobile-cloner.apk'),
+      p.join(_bundleDir(), 'data', 'mobile-cloner.apk'),
+    ];
+    for (final c in candidates) {
+      if (c != null && File(c).existsSync()) return c;
+    }
+    return null;
   }
 
   Future<void> _changeFolder() async {
@@ -103,7 +186,7 @@ class _DesktopHomeState extends State<DesktopHome> {
           for (final d in targets)
             SimpleDialogOption(onPressed: () => Navigator.pop(context, d), child: Text('${d.info.alias}  ·  ${d.ip}')),
           for (final s in _linked)
-            SimpleDialogOption(onPressed: () => Navigator.pop(context, s), child: Text('USB: $s')),
+            SimpleDialogOption(onPressed: () => Navigator.pop(context, s), child: Text('USB: ${_nameOf(s)}')),
           if (targets.isEmpty && _linked.isEmpty)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -174,6 +257,9 @@ class _DesktopHomeState extends State<DesktopHome> {
     }
   }
 
+  String _nameOf(String serial) =>
+      _adbDevices.where((d) => d.serial == serial).map((d) => d.model).firstOrNull ?? serial;
+
   void _snack(String text) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
@@ -222,7 +308,16 @@ class _DesktopHomeState extends State<DesktopHome> {
           pairing: _pairing,
           backupFolder: _folder,
           backups: [for (final b in _backups) _card(b)],
-          adbDevices: [for (final serial in _adbSerials) AdbDeviceData(serial: serial, connected: _linked.contains(serial))],
+          adbDevices: [
+            for (final d in _adbDevices)
+              AdbDeviceData(
+                serial: d.serial,
+                name: d.model,
+                connected: _linked.contains(d.serial),
+                status: _adbStatus[d.serial],
+                busy: _adbBusy.contains(d.serial),
+              ),
+          ],
           live: live,
           onChangeFolder: _changeFolder,
           onAdbConnect: _link,

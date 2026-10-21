@@ -52,9 +52,16 @@ class LiveTransferData {
 }
 
 class AdbDeviceData {
-  const AdbDeviceData({required this.serial, required this.connected});
+  const AdbDeviceData({required this.serial, required this.connected, this.name, this.status, this.busy = false});
   final String serial;
   final bool connected;
+
+  /// Model name when adb reports it.
+  final String? name;
+
+  /// What the automatic setup is doing or needs ("Installing Mobile Cloner").
+  final String? status;
+  final bool busy;
 }
 
 /// Desktop backup station.
@@ -313,7 +320,7 @@ class _ConnectCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 6),
                 if (adbDevices.isEmpty)
-                  Text('Plug in a phone with USB debugging on.', style: t.bodySmall?.copyWith(color: Colors.white60))
+                  Text('Plug in a phone with USB debugging on. Mobile Cloner installs and opens on it by itself.', style: t.bodySmall?.copyWith(color: Colors.white60))
                 else
                   for (final d in adbDevices)
                     Container(
@@ -323,8 +330,26 @@ class _ConnectCard extends StatelessWidget {
                       child: Row(children: [
                         const Icon(Icons.smartphone_rounded, size: 18),
                         const SizedBox(width: 10),
-                        Expanded(child: Text(d.serial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-                        d.connected
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(d.name ?? d.serial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                              if (d.status != null)
+                                Text(d.status!, style: t.bodySmall?.copyWith(color: Colors.white70)),
+                            ],
+                          ),
+                        ),
+                        d.busy
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                ),
+                              )
+                            : d.connected
                             ? const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 child: Text('Linked', style: TextStyle(color: Color(0xFF99F6E4), fontWeight: FontWeight.w700)),
@@ -336,7 +361,7 @@ class _ConnectCard extends StatelessWidget {
                                   foregroundColor: AppColors.indigo,
                                 ),
                                 onPressed: () => onAdbConnect?.call(d.serial),
-                                child: const Text('Link'),
+                                child: const Text('Retry'),
                               ),
                       ]),
                     ),

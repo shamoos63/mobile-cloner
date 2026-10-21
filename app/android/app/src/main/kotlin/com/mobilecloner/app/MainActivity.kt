@@ -16,6 +16,13 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler(b)
     }
 
+    // Keep the newest launch intent so Dart can read `cloner_link` on resume
+    // (the computer re-opens the app with it when the cable is plugged in).
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")

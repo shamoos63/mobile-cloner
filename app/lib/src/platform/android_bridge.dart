@@ -53,6 +53,10 @@ class AndroidBridge {
 
   AndroidDeviceInfo? _info;
 
+  /// `cloner_link` extra of the launch intent, read once (`adb` when the
+  /// computer opened us over USB).
+  Future<String?> takeLaunchLink() => _ch.invokeMethod<String>('takeLaunchLink');
+
   Future<AndroidDeviceInfo> deviceInfo() async {
     if (_info != null) return _info!;
     final m = (await _ch.invokeMapMethod<String, Object?>('deviceInfo'))!;
