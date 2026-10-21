@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../services/cloner_service.dart';
+import '../../services/format.dart';
+import '../widgets/labels.dart';
 import '../../version.dart';
 import 'views/desktop_view.dart';
 
@@ -34,6 +36,7 @@ class _DesktopHomeState extends State<DesktopHome> {
   final Set<String> _handled = {};
   Timer? _adbPoll;
   String _folder = '';
+  DesktopSection _section = DesktopSection.overview;
 
   @override
   void initState() {
@@ -275,11 +278,38 @@ class _DesktopHomeState extends State<DesktopHome> {
     return BackupCardData(
       alias: m.alias,
       subtitle: [if (m.sdkInt != null) 'Android API ${m.sdkInt}', if (m.deviceModel != null) m.deviceModel!].join(' · '),
-      lastBackup: '${when.year}-${_two(when.month)}-${_two(when.day)} ${_two(when.hour)}:${_two(when.minute)}',
+      lastBackup: _stamp(when),
       bytesByCategory: bytes,
       path: b.$1,
     );
   }
+
+  /// One row per category per backup, newest first.
+  List<HistoryEntry> _history() {
+    final rows = <(DateTime, HistoryEntry)>[];
+    for (final (_, m) in _backups) {
+      for (final e in m.categories.entries) {
+        final v = e.value;
+        if (v is! Map) continue;
+        final at = (DateTime.tryParse('${v['at']}') ?? m.lastBackup).toLocal();
+        final files = (v['files'] as num?)?.toInt() ?? 0;
+        final bytes = (v['bytes'] as num?)?.toInt() ?? 0;
+        rows.add((
+          at,
+          HistoryEntry(
+            title: '${categoryLabel(ContentCategory.parse(e.key))} from ${m.alias}',
+            detail: '$files files · ${formatBytes(bytes)}',
+            when: _stamp(at),
+          ),
+        ));
+      }
+    }
+    rows.sort((a, b) => b.$1.compareTo(a.$1));
+    return [for (final r in rows) r.$2];
+  }
+
+  static String _stamp(DateTime when) =>
+      '${when.year}-${_two(when.month)}-${_two(when.day)} ${_two(when.hour)}:${_two(when.minute)}';
 
   static String _two(int v) => v.toString().padLeft(2, '0');
 
@@ -318,7 +348,14 @@ class _DesktopHomeState extends State<DesktopHome> {
                 busy: _adbBusy.contains(d.serial),
               ),
           ],
+          section: _section,
+          nearby: [
+            for (final d in service.peers.values) NearbyDeviceData(name: d.info.alias, address: d.ip),
+          ],
+          history: _history(),
+          appVersion: '$appVersionName ($appVersionCode)',
           live: live,
+          onSection: (s) => setState(() => _section = s),
           onChangeFolder: _changeFolder,
           onAdbConnect: _link,
           onAdbRefresh: _refreshAdb,

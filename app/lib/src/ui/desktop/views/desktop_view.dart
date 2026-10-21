@@ -64,6 +64,24 @@ class AdbDeviceData {
   final bool busy;
 }
 
+/// Main panels the sidebar switches between.
+enum DesktopSection { overview, backups, devices, history, settings }
+
+/// A phone seen on the network.
+class NearbyDeviceData {
+  const NearbyDeviceData({required this.name, required this.address});
+  final String name;
+  final String address;
+}
+
+/// One past backup of one category ("Photos from Pixel 7").
+class HistoryEntry {
+  const HistoryEntry({required this.title, required this.detail, required this.when});
+  final String title;
+  final String detail;
+  final String when;
+}
+
 /// Desktop backup station.
 class DesktopHomeView extends StatelessWidget {
   const DesktopHomeView({
@@ -74,7 +92,12 @@ class DesktopHomeView extends StatelessWidget {
     required this.backupFolder,
     required this.backups,
     required this.adbDevices,
+    this.section = DesktopSection.overview,
+    this.nearby = const [],
+    this.history = const [],
+    this.appVersion = '',
     this.live,
+    this.onSection,
     this.onChangeFolder,
     this.onAdbConnect,
     this.onAdbRefresh,
@@ -88,7 +111,12 @@ class DesktopHomeView extends StatelessWidget {
   final String backupFolder;
   final List<BackupCardData> backups;
   final List<AdbDeviceData> adbDevices;
+  final DesktopSection section;
+  final List<NearbyDeviceData> nearby;
+  final List<HistoryEntry> history;
+  final String appVersion;
   final LiveTransferData? live;
+  final void Function(DesktopSection)? onSection;
   final VoidCallback? onChangeFolder;
   final void Function(String serial)? onAdbConnect;
   final VoidCallback? onAdbRefresh;
@@ -97,111 +125,248 @@ class DesktopHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     return Scaffold(
       body: Row(
         children: [
-          const _Sidebar(),
+          _Sidebar(selected: section, onSelect: onSection),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(36, 32, 36, 36),
-              children: [
-                Row(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Backup station', style: t.headlineMedium),
-                        const SizedBox(height: 4),
-                        Text('Phones on this network or plugged in by USB can back up here.',
-                            style: t.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                      ],
-                    ),
-                    const Spacer(),
-                    _StatusPill(text: 'Ready · ${addresses.isEmpty ? hostName : addresses.first}'),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  height: 330,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(flex: 6, child: _ConnectCard(
-                        pairing: pairing,
-                        hostName: hostName,
-                        adbDevices: adbDevices,
-                        onAdbConnect: onAdbConnect,
-                        onAdbRefresh: onAdbRefresh,
-                      )),
-                      const SizedBox(width: 20),
-                      Expanded(flex: 5, child: _LiveCard(live: live)),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 32, 4, 14),
-                  child: Row(
-                    children: [
-                      Text('Device backups', style: t.titleLarge),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(backupFolder,
-                            style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                      TextButton.icon(onPressed: onChangeFolder, icon: const Icon(Icons.folder_open_rounded), label: const Text('Change folder')),
-                    ],
-                  ),
-                ),
-                if (backups.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Center(child: Text('No backups yet. Open Mobile Cloner on a phone and tap "Back up to computer".',
-                          style: t.bodyMedium)),
-                    ),
-                  )
-                else
-                  LayoutBuilder(builder: (context, c) {
-                    final cols = c.maxWidth > 900 ? 3 : (c.maxWidth > 560 ? 2 : 1);
-                    final w = (c.maxWidth - (cols - 1) * 20) / cols;
-                    return Wrap(
-                      spacing: 20,
-                      runSpacing: 20,
-                      children: [
-                        for (final b in backups)
-                          SizedBox(width: w, child: _BackupCard(data: b, onRestore: onRestore, onOpen: onOpenFolder)),
-                      ],
-                    );
-                  }),
-              ],
+              children: switch (section) {
+                DesktopSection.overview => _overview(context),
+                DesktopSection.backups => _backupsPanel(context),
+                DesktopSection.devices => _devicesPanel(context),
+                DesktopSection.history => _historyPanel(context),
+                DesktopSection.settings => _settingsPanel(context),
+              },
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _header(BuildContext context, String title, String subtitle) {
+    final t = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: t.headlineMedium),
+              const SizedBox(height: 4),
+              Text(subtitle, style: t.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        _StatusPill(text: 'Ready · ${addresses.isEmpty ? hostName : addresses.first}'),
+      ],
+    );
+  }
+
+  Widget _connectCard() => _ConnectCard(
+    pairing: pairing,
+    hostName: hostName,
+    adbDevices: adbDevices,
+    onAdbConnect: onAdbConnect,
+    onAdbRefresh: onAdbRefresh,
+  );
+
+  List<Widget> _overview(BuildContext context) => [
+    _header(context, 'Backup station', 'Phones on this network or plugged in by USB can back up here.'),
+    const SizedBox(height: 28),
+    SizedBox(
+      height: 330,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(flex: 6, child: _connectCard()),
+          const SizedBox(width: 20),
+          Expanded(flex: 5, child: _LiveCard(live: live)),
+        ],
+      ),
+    ),
+    const SizedBox(height: 18),
+    ..._backupGrid(context),
+  ];
+
+  List<Widget> _backupsPanel(BuildContext context) => [
+    _header(context, 'Backups', 'Every phone backed up to this computer.'),
+    const SizedBox(height: 14),
+    ..._backupGrid(context),
+  ];
+
+  List<Widget> _backupGrid(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 14, 4, 14),
+        child: Row(
+          children: [
+            Text('Device backups', style: t.titleLarge),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(backupFolder,
+                  style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  overflow: TextOverflow.ellipsis),
+            ),
+            TextButton.icon(onPressed: onChangeFolder, icon: const Icon(Icons.folder_open_rounded), label: const Text('Change folder')),
+          ],
+        ),
+      ),
+      if (backups.isEmpty)
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Center(child: Text('No backups yet. Open Mobile Cloner on a phone and tap "Back up to computer".',
+                style: t.bodyMedium)),
+          ),
+        )
+      else
+        LayoutBuilder(builder: (context, c) {
+          final cols = c.maxWidth > 900 ? 3 : (c.maxWidth > 560 ? 2 : 1);
+          final w = (c.maxWidth - (cols - 1) * 20) / cols;
+          return Wrap(
+            spacing: 20,
+            runSpacing: 20,
+            children: [
+              for (final b in backups)
+                SizedBox(width: w, child: _BackupCard(data: b, onRestore: onRestore, onOpen: onOpenFolder)),
+            ],
+          );
+        }),
+    ];
+  }
+
+  List<Widget> _devicesPanel(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return [
+      _header(context, 'Devices', 'Phones plugged in by USB or running Mobile Cloner on this network.'),
+      const SizedBox(height: 28),
+      SizedBox(height: 330, child: _connectCard()),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 32, 4, 14),
+        child: Text('Nearby on Wi-Fi', style: t.titleLarge),
+      ),
+      Card(
+        child: nearby.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(child: Text('No phones found yet. Open Mobile Cloner on a phone on the same network.',
+                    style: t.bodyMedium?.copyWith(color: muted))),
+              )
+            : Column(children: [
+                for (final d in nearby)
+                  ListTile(
+                    leading: const Icon(Icons.wifi_rounded),
+                    title: Text(d.name),
+                    subtitle: Text(d.address),
+                  ),
+              ]),
+      ),
+    ];
+  }
+
+  List<Widget> _historyPanel(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return [
+      _header(context, 'History', 'Recent backups, newest first.'),
+      const SizedBox(height: 28),
+      Card(
+        child: history.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(child: Text('Nothing backed up yet.', style: t.bodyMedium?.copyWith(color: muted))),
+              )
+            : Column(children: [
+                for (final h in history)
+                  ListTile(
+                    leading: const Icon(Icons.history_rounded),
+                    title: Text(h.title),
+                    subtitle: Text(h.detail),
+                    trailing: Text(h.when, style: t.bodySmall?.copyWith(color: muted)),
+                  ),
+              ]),
+      ),
+    ];
+  }
+
+  List<Widget> _settingsPanel(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return [
+      _header(context, 'Settings', 'Where backups are kept, and about this app.'),
+      const SizedBox(height: 28),
+      Card(
+        child: Column(children: [
+          ListTile(
+            leading: const Icon(Icons.folder_rounded),
+            title: const Text('Backup folder'),
+            subtitle: Text(backupFolder.isEmpty ? '-' : backupFolder),
+            trailing: TextButton.icon(
+              onPressed: onChangeFolder,
+              icon: const Icon(Icons.folder_open_rounded),
+              label: const Text('Change folder'),
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 20),
+      Card(
+        child: Column(children: [
+          ListTile(
+            leading: const Icon(Icons.info_outline_rounded),
+            title: const Text('Mobile Cloner'),
+            subtitle: Text(appVersion.isEmpty ? 'Desktop backup station' : 'Version $appVersion'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.computer_rounded),
+            title: const Text('This computer'),
+            subtitle: Text([hostName, ...addresses].join(' · ')),
+          ),
+          ListTile(
+            leading: const Icon(Icons.lock_rounded),
+            title: const Text('Encryption'),
+            subtitle: Text('Transfers are end-to-end encrypted on your local network.', style: TextStyle(color: muted)),
+          ),
+        ]),
+      ),
+    ];
+  }
 }
 
 class _Sidebar extends StatelessWidget {
-  const _Sidebar();
+  const _Sidebar({required this.selected, this.onSelect});
+  final DesktopSection selected;
+  final void Function(DesktopSection)? onSelect;
 
   @override
   Widget build(BuildContext context) {
-    Widget item(IconData icon, String label, {bool active = false}) => Container(
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: active ? Colors.white.withValues(alpha: 0.14) : Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(children: [
-        Icon(icon, color: active ? Colors.white : Colors.white60, size: 20),
-        const SizedBox(width: 12),
-        Text(label, style: TextStyle(color: active ? Colors.white : Colors.white70, fontWeight: FontWeight.w600)),
-      ]),
-    );
+    Widget item(IconData icon, String label, DesktopSection section) {
+      final active = section == selected;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Material(
+          color: active ? Colors.white.withValues(alpha: 0.14) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            hoverColor: Colors.white.withValues(alpha: 0.08),
+            onTap: () => onSelect?.call(section),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: [
+                Icon(icon, color: active ? Colors.white : Colors.white60, size: 20),
+                const SizedBox(width: 12),
+                Text(label, style: TextStyle(color: active ? Colors.white : Colors.white70, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
     return Container(
       width: 236,
       decoration: const BoxDecoration(
@@ -226,12 +391,12 @@ class _Sidebar extends StatelessWidget {
             const Text('Mobile Cloner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
           ]),
           const SizedBox(height: 36),
-          item(Icons.space_dashboard_rounded, 'Overview', active: true),
-          item(Icons.inventory_2_outlined, 'Backups'),
-          item(Icons.devices_other_rounded, 'Devices'),
-          item(Icons.history_rounded, 'History'),
+          item(Icons.space_dashboard_rounded, 'Overview', DesktopSection.overview),
+          item(Icons.inventory_2_outlined, 'Backups', DesktopSection.backups),
+          item(Icons.devices_other_rounded, 'Devices', DesktopSection.devices),
+          item(Icons.history_rounded, 'History', DesktopSection.history),
           const Spacer(),
-          item(Icons.settings_outlined, 'Settings'),
+          item(Icons.settings_outlined, 'Settings', DesktopSection.settings),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(14),
