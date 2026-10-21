@@ -46,11 +46,16 @@ class Discovery {
         // Interface without multicast support.
       }
     }
-    socket.listen((event) {
-      if (event != RawSocketEvent.read) return;
-      final dg = socket.receive();
-      if (dg != null) _onDatagram(socket, dg);
-    });
+    socket.listen(
+      (event) {
+        if (event != RawSocketEvent.read) return;
+        final dg = socket.receive();
+        if (dg != null) _onDatagram(socket, dg);
+      },
+      // Send failures (e.g. EPERM when the network blocks multicast) arrive
+      // here asynchronously; the subnet scan still finds peers.
+      onError: (Object _) {},
+    );
     _sockets.add(socket);
     announce();
   }
@@ -59,7 +64,11 @@ class Discovery {
   void announce() {
     final payload = utf8.encode(jsonEncode(_self().toJson(withAnnounce: true, announce: true)));
     for (final s in _sockets) {
-      s.send(payload, InternetAddress(group), port);
+      try {
+        s.send(payload, InternetAddress(group), port);
+      } on SocketException {
+        // Multicast blocked on this network.
+      }
     }
   }
 
