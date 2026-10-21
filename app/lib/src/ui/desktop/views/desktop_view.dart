@@ -423,16 +423,11 @@ class _Sidebar extends StatelessWidget {
           colors: [Color(0xFF1E1B4B), Color(0xFF0F172A)],
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 28, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Image.asset('assets/logo.png', width: 40, height: 40, filterQuality: FilterQuality.medium),
-            const SizedBox(width: 10),
-            const Text('HK Cloner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17)),
-          ]),
-          const SizedBox(height: 36),
+          // The logo and name sit in the title bar above.
           item(Icons.space_dashboard_rounded, 'Overview', DesktopSection.overview),
           item(Icons.inventory_2_outlined, 'Backups', DesktopSection.backups),
           item(Icons.devices_other_rounded, 'Devices', DesktopSection.devices),

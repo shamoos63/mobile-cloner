@@ -10,6 +10,7 @@ import '../../services/cloner_service.dart';
 import '../../services/format.dart';
 import '../widgets/labels.dart';
 import '../../version.dart';
+import 'title_bar.dart';
 import 'views/desktop_view.dart';
 
 class DesktopHome extends StatefulWidget {
@@ -332,7 +333,7 @@ class _DesktopHomeState extends State<DesktopHome> {
                 peerStatus: service.senderStatus,
               )
             : null;
-        return DesktopHomeView(
+        final view = DesktopHomeView(
           hostName: service.self.alias,
           addresses: _addresses,
           pairing: _pairing,
@@ -364,6 +365,7 @@ class _DesktopHomeState extends State<DesktopHome> {
           onPreview: (b) => _preview(b.path!),
           onDelete: (b) => _delete(b),
         );
+        return Column(children: [const DesktopTitleBar(), Expanded(child: view)]);
       },
     );
   }
