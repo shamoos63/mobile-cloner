@@ -7,6 +7,7 @@ export 'src/discovery/adb_bridge.dart';
 export 'src/discovery/connection_mode.dart';
 export 'src/discovery/local_links.dart';
 export 'src/discovery/multicast_discovery.dart';
+export 'src/migration/app_package.dart';
 export 'src/migration/content_category.dart';
 export 'src/migration/restore_plan.dart';
 export 'src/migration/safe_path.dart';

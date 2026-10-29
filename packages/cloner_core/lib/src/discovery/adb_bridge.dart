@@ -86,8 +86,17 @@ class AdbBridge {
   /// `adb install -r` (replace, keep data). Android 6 has no `-g`, so
   /// permissions are still asked in the app. Throws [AdbInstallException]
   /// with the reason Android gave.
-  Future<void> install(String serial, String apkPath) async {
-    final r = await Process.run(adbPath, ['-s', serial, 'install', '-r', apkPath]);
+  Future<void> install(String serial, String apkPath) => installApp(serial, [apkPath]);
+
+  /// Installs one app from its base APK plus split APKs (base first), with
+  /// `install-multiple` when there are splits. Replaces an older version
+  /// and keeps its data.
+  Future<void> installApp(String serial, List<String> apks) async {
+    if (apks.isEmpty) throw ArgumentError('No APKs');
+    final args = apks.length == 1
+        ? ['-s', serial, 'install', '-r', apks.first]
+        : ['-s', serial, 'install-multiple', '-r', ...apks];
+    final r = await Process.run(adbPath, args);
     final out = '${r.stdout}\n${r.stderr}';
     if (r.exitCode != 0 || out.contains('Failure [')) throw AdbInstallException.parse(out);
   }

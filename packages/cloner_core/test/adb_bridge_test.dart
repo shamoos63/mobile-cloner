@@ -25,7 +25,7 @@ echo "\$*" >> ${log.path}
 case "\$*" in
   "devices -l") printf 'List of devices attached\\nRZCT1 device usb:1-1 product:a53x model:SM_A536E device:a53x\\nR5GY2 unauthorized usb:1-2\\n' ;;
   *"dumpsys package"*) cat ${dump.path} ;;
-  *" install "*) cat ${install.path}; exit $installExit ;;
+  *" install "*|*" install-multiple "*) cat ${install.path}; exit $installExit ;;
 esac
 ''');
   await Process.run('chmod', ['+x', script.path]);
@@ -100,6 +100,24 @@ void main() {
     expect(
       await failure('Failure [INSTALL_PARSE_FAILED_NOT_APK: Failed to parse]', exit: 0),
       InstallFailure.invalidApk,
+    );
+  });
+
+  test('an app with splits installs in one install-multiple, base first', () async {
+    final (adb, log) = await fakeAdb(tmp);
+    await adb.installApp('RZCT1', ['/b/com.foo/base.apk', '/b/com.foo/split_config.arm64_v8a.apk']);
+    await adb.installApp('RZCT1', ['/b/com.bar/base.apk']);
+    expect(log.readAsLinesSync(), [
+      '-s RZCT1 install-multiple -r /b/com.foo/base.apk /b/com.foo/split_config.arm64_v8a.apk',
+      '-s RZCT1 install -r /b/com.bar/base.apk',
+    ]);
+  });
+
+  test('install-multiple failures carry the reason too', () async {
+    final (adb, _) = await fakeAdb(tmp, installOutput: 'Failure [INSTALL_FAILED_OLDER_SDK: Requires newer sdk version #34]');
+    await expectLater(
+      adb.installApp('RZCT1', ['a/base.apk', 'a/split.apk']),
+      throwsA(isA<AdbInstallException>().having((e) => e.detail, 'detail', contains('OLDER_SDK'))),
     );
   });
 
