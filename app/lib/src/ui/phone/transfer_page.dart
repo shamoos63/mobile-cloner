@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
@@ -20,6 +22,30 @@ class TransferPage extends StatefulWidget {
 class _TransferPageState extends State<TransferPage> {
   final service = ClonerService.instance;
   String? _error;
+
+  /// When every byte had gone out without the receiver confirming yet.
+  DateTime? _finishingSince;
+  Timer? _tick;
+
+  static const _finishingPatience = Duration(seconds: 30);
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  /// All sent, not confirmed: after a while offer Resume (pause + resume
+  /// skips what the receiver has and sends the finish again).
+  Future<void> _resumeStuck() async {
+    _finishingSince = null;
+    service.pauseSend();
+    // The job stops on its own schedule; resume once it has.
+    for (var i = 0; i < 50 && service.sendState == SendState.sending; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    await _resume();
+  }
 
   @override
   void initState() {
@@ -76,6 +102,25 @@ class _TransferPageState extends State<TransferPage> {
         final peer = service.sendTarget?.info.alias ?? cp?.peerAlias ?? S.of(context).deviceFallbackName;
         final interrupted = service.sendState == SendState.interrupted || service.sendState == SendState.failed;
         final done = service.sendState == SendState.done;
+        final allSent = pr != null && pr.totalFiles > 0 && pr.doneFiles >= pr.totalFiles;
+        final phase = done
+            ? TransferPhase.done
+            : interrupted
+            ? TransferPhase.interrupted
+            : allSent
+            ? TransferPhase.finishing
+            : TransferPhase.sending;
+        if (phase == TransferPhase.finishing) {
+          _finishingSince ??= DateTime.now();
+          _tick ??= Timer.periodic(const Duration(seconds: 5), (_) {
+            if (mounted) setState(() {});
+          });
+        } else {
+          _finishingSince = null;
+          _tick?.cancel();
+          _tick = null;
+        }
+        final stuck = _finishingSince != null && DateTime.now().difference(_finishingSince!) > _finishingPatience;
         final reason = interrupted
             ? (_error ??
                 (service.sendState == SendState.failed
@@ -102,8 +147,11 @@ class _TransferPageState extends State<TransferPage> {
             await service.cancelSend();
             if (context.mounted) Navigator.pop(context);
           },
-          onResume: () => _resume(),
+          onResume: phase == TransferPhase.finishing ? _resumeStuck : () => _resume(),
           onReconnect: _reconnect,
+          phase: phase,
+          finishingStuck: stuck,
+          onDone: () => Navigator.of(context).popUntil((r) => r.isFirst),
         );
       },
     );

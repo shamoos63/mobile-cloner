@@ -11,6 +11,7 @@ import '../../sources/wallpaper_source.dart';
 import '../../sources/whatsapp_source.dart';
 import 'app_picker_page.dart';
 import 'transfer_page.dart';
+import '../widgets/labels.dart';
 import 'views/select_view.dart';
 
 /// Scans what's on this phone and lets the user pick what to send.
@@ -34,6 +35,10 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
   final Map<ContentCategory, int> _counts = {};
   final Set<ContentCategory> _selected = {};
   final Set<ContentCategory> _loading = {};
+
+  /// Categories the user ticked or unticked: a scan that finishes later
+  /// must not undo that.
+  final Set<ContentCategory> _touched = {};
   final Map<WhatsAppVariant, WhatsAppScan> _wa = {};
   bool _chatsOnly = false;
   bool _wallpaperDenied = false;
@@ -41,6 +46,9 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
   /// Installed apps, listed the first time Apps is ticked.
   Future<List<InstalledApp>>? _appList;
   Set<String> _chosenApps = {};
+
+  /// Chosen apps whose APKs Android wouldn't hand out; shown, not sent.
+  List<String> _skippedApps = [];
 
   @override
   void initState() {
@@ -98,17 +106,21 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
         _counts.putIfAbsent(c, () => files.length);
         if (files.isEmpty) {
           _selected.remove(c);
-        } else if (select) {
+        } else if (select && !_touched.contains(c)) {
           _selected.add(c);
         }
         _loading.remove(c);
       });
-    }).catchError((Object _) {
-      if (mounted) setState(() => _loading.remove(c));
+    }).catchError((Object e) {
+      debugPrint('HKCloner.select: loading ${c.wireName} failed: $e');
+      if (!mounted) return;
+      setState(() => _loading.remove(c));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr.prepareFailed(categoryLabel(c), '$e'))));
     });
   }
 
   void _toggle(ContentCategory c, bool on) {
+    _touched.add(c);
     if (c == ContentCategory.apps) {
       on ? _chooseApps() : setState(() => _selected.remove(c));
       return;
@@ -146,9 +158,14 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
       return;
     }
     final apps = [for (final a in await list) if (chosen.contains(a.packageName)) a];
+    debugPrint('HKCloner.select: ${apps.length} apps chosen');
+    // The picker's answer is the user's choice: tick Apps when files are ready.
+    _touched.remove(ContentCategory.apps);
     _load(ContentCategory.apps, () async {
-      _counts[ContentCategory.apps] = apps.length;
-      return appsSource.files(apps);
+      final r = await appsSource.prepare(apps);
+      _skippedApps = r.skipped;
+      _counts[ContentCategory.apps] = apps.length - r.skipped.length;
+      return r.files;
     });
   }
 
@@ -185,7 +202,9 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
       }
     }
     if (c == ContentCategory.apps) {
-      warning = S.of(context).appsOnlyNote;
+      warning = _skippedApps.isEmpty
+          ? S.of(context).appsOnlyNote
+          : '${S.of(context).appsOnlyNote}\n${S.of(context).appsSkipped(_skippedApps.join(', '))}';
       action = S.of(context).chooseApps;
       onAction = _chooseApps;
     }
@@ -223,6 +242,8 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
         if (_selected.contains(c)) ...?_files[c],
     ];
     if (files.isEmpty) return;
+    debugPrint('HKCloner.select: sending ${files.length} files '
+        '(${files.where((f) => f.dto.category == ContentCategory.apps).length} for apps)');
     service.send(widget.target, files, options: {
       'whatsAppChatsOnly': _chatsOnly,
       // Lets a restarted app rebuild the Apps files for the same packages.

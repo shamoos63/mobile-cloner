@@ -133,6 +133,20 @@ class SAr extends S {
       'لا يسمح أندرويد لـ HK Cloner بقراءة هذا التطبيق.';
 
   @override
+  String appsBackedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تم نسخ $count تطبيق احتياطيًا.',
+      many: 'تم نسخ $count تطبيقًا احتياطيًا.',
+      few: 'تم نسخ $count تطبيقات احتياطيًا.',
+      two: 'تم نسخ تطبيقين احتياطيًا.',
+      one: 'تم نسخ تطبيق واحد احتياطيًا.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String appsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -150,6 +164,11 @@ class SAr extends S {
   @override
   String appsInstalledSummary(int installed, int total) {
     return 'تم تثبيت $installed من $total تطبيق.';
+  }
+
+  @override
+  String appsNotCopied(String names) {
+    return 'لم يُنسخ: $names';
   }
 
   @override
@@ -175,6 +194,14 @@ class SAr extends S {
     );
     return '$_temp0';
   }
+
+  @override
+  String appsSkipped(String names) {
+    return 'تعذّرت قراءتها ولن تُنقل: $names';
+  }
+
+  @override
+  String get backUpApps => 'نسخ التطبيقات احتياطيًا';
 
   @override
   String get backUpNow => 'انسخ الآن';
@@ -352,6 +379,11 @@ class SAr extends S {
   String get copied => 'تم نسخه';
 
   @override
+  String copyingAppOf(String name, int index, int total) {
+    return 'جارٍ نسخ $name ($index من $total)';
+  }
+
+  @override
   String couldNotDelete(String error) {
     return 'تعذّر الحذف: $error';
   }
@@ -500,6 +532,19 @@ class SAr extends S {
 
   @override
   String get finishWhatsapp => 'أكمل إعداد واتساب';
+
+  @override
+  String finishingStuck(String name) {
+    return 'لم يؤكد $name بعد. إن لم يتغير شيء، اضغط استئناف لإرسال ما تبقى من جديد.';
+  }
+
+  @override
+  String get finishingUp => 'جارٍ الإنهاء...';
+
+  @override
+  String finishingWaiting(String name) {
+    return 'أُرسل كل شيء. في انتظار تأكيد $name.';
+  }
 
   @override
   String fromName(String name) {
@@ -846,8 +891,17 @@ class SAr extends S {
   String get phone => 'الهاتف';
 
   @override
+  String get plugInForApps =>
+      'وصّل الهاتف عبر USB (مع تفعيل تصحيح أخطاء USB) لتثبيت التطبيقات من هذا الكمبيوتر.';
+
+  @override
   String get plugInPhone =>
       'وصّل هاتفًا مع تفعيل تصحيح أخطاء USB. سيُثبَّت HK Cloner ويُفتح عليه تلقائيًا.';
+
+  @override
+  String prepareFailed(String category, String error) {
+    return 'تعذّر تجهيز $category: $error';
+  }
 
   @override
   String readyAt(String address) {
@@ -875,6 +929,9 @@ class SAr extends S {
 
   @override
   String get restore => 'استعادة';
+
+  @override
+  String get restoreApps => 'استعادة التطبيقات';
 
   @override
   String get restoreComplete => 'اكتملت الاستعادة.';
@@ -1062,6 +1119,11 @@ class SAr extends S {
 
   @override
   String get transferComplete => 'اكتمل النقل';
+
+  @override
+  String transferDoneSummary(int count, String name) {
+    return 'تم نقل $count عنصر إلى $name.';
+  }
 
   @override
   String transferFailed(String error) {

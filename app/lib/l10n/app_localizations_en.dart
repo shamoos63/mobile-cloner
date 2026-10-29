@@ -133,6 +133,17 @@ class SEn extends S {
   String get appUnreadable => 'Android doesn\'t let HK Cloner read this app.';
 
   @override
+  String appsBackedUp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count apps backed up.',
+      one: '1 app backed up.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String appsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -147,6 +158,11 @@ class SEn extends S {
   @override
   String appsInstalledSummary(int installed, int total) {
     return '$installed of $total apps installed.';
+  }
+
+  @override
+  String appsNotCopied(String names) {
+    return 'Not copied: $names';
   }
 
   @override
@@ -169,6 +185,14 @@ class SEn extends S {
     );
     return '$_temp0';
   }
+
+  @override
+  String appsSkipped(String names) {
+    return 'Can\'t be read, left out: $names';
+  }
+
+  @override
+  String get backUpApps => 'Back up apps';
 
   @override
   String get backUpNow => 'Back up now';
@@ -343,6 +367,11 @@ class SEn extends S {
   String get copied => 'Copied';
 
   @override
+  String copyingAppOf(String name, int index, int total) {
+    return 'Copying $name ($index of $total)';
+  }
+
+  @override
   String couldNotDelete(String error) {
     return 'Could not delete: $error';
   }
@@ -491,6 +520,19 @@ class SEn extends S {
 
   @override
   String get finishWhatsapp => 'Finish WhatsApp';
+
+  @override
+  String finishingStuck(String name) {
+    return '$name has not confirmed yet. If nothing changes, tap Resume to send the rest again.';
+  }
+
+  @override
+  String get finishingUp => 'Finishing up...';
+
+  @override
+  String finishingWaiting(String name) {
+    return 'Everything is sent. Waiting for $name to confirm.';
+  }
 
   @override
   String fromName(String name) {
@@ -832,8 +874,17 @@ class SEn extends S {
   String get phone => 'Phone';
 
   @override
+  String get plugInForApps =>
+      'Plug the phone in over USB (with USB debugging on) to install the apps from this computer.';
+
+  @override
   String get plugInPhone =>
       'Plug in a phone with USB debugging on. HK Cloner installs and opens on it by itself.';
+
+  @override
+  String prepareFailed(String category, String error) {
+    return 'Could not prepare $category: $error';
+  }
 
   @override
   String readyAt(String address) {
@@ -861,6 +912,9 @@ class SEn extends S {
 
   @override
   String get restore => 'Restore';
+
+  @override
+  String get restoreApps => 'Restore apps';
 
   @override
   String get restoreComplete => 'Restore complete.';
@@ -1047,6 +1101,11 @@ class SEn extends S {
 
   @override
   String get transferComplete => 'Transfer complete';
+
+  @override
+  String transferDoneSummary(int count, String name) {
+    return '$count items moved to $name.';
+  }
 
   @override
   String transferFailed(String error) {

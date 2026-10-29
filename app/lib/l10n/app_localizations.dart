@@ -295,6 +295,12 @@ abstract class S {
   /// **'لا يسمح أندرويد لـ HK Cloner بقراءة هذا التطبيق.'**
   String get appUnreadable;
 
+  /// No description provided for @appsBackedUp.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{تم نسخ تطبيق واحد احتياطيًا.} =2{تم نسخ تطبيقين احتياطيًا.} few{تم نسخ {count} تطبيقات احتياطيًا.} many{تم نسخ {count} تطبيقًا احتياطيًا.} other{تم نسخ {count} تطبيق احتياطيًا.}}'**
+  String appsBackedUp(int count);
+
   /// No description provided for @appsCount.
   ///
   /// In ar, this message translates to:
@@ -306,6 +312,12 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'تم تثبيت {installed} من {total} تطبيق.'**
   String appsInstalledSummary(int installed, int total);
+
+  /// No description provided for @appsNotCopied.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُنسخ: {names}'**
+  String appsNotCopied(String names);
 
   /// No description provided for @appsNotInstalled.
   ///
@@ -324,6 +336,18 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'{count, plural, =0{لم يُحدَّد أي تطبيق} =1{تطبيق واحد · {size}} =2{تطبيقان · {size}} few{{count} تطبيقات · {size}} many{{count} تطبيقًا · {size}} other{{count} تطبيق · {size}}}'**
   String appsSelected(int count, String size);
+
+  /// No description provided for @appsSkipped.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّرت قراءتها ولن تُنقل: {names}'**
+  String appsSkipped(String names);
+
+  /// No description provided for @backUpApps.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخ التطبيقات احتياطيًا'**
+  String get backUpApps;
 
   /// No description provided for @backUpNow.
   ///
@@ -631,6 +655,12 @@ abstract class S {
   /// **'تم نسخه'**
   String get copied;
 
+  /// No description provided for @copyingAppOf.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ نسخ {name} ({index} من {total})'**
+  String copyingAppOf(String name, int index, int total);
+
   /// No description provided for @couldNotDelete.
   ///
   /// In ar, this message translates to:
@@ -846,6 +876,24 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'أكمل إعداد واتساب'**
   String get finishWhatsapp;
+
+  /// No description provided for @finishingStuck.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يؤكد {name} بعد. إن لم يتغير شيء، اضغط استئناف لإرسال ما تبقى من جديد.'**
+  String finishingStuck(String name);
+
+  /// No description provided for @finishingUp.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الإنهاء...'**
+  String get finishingUp;
+
+  /// No description provided for @finishingWaiting.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُرسل كل شيء. في انتظار تأكيد {name}.'**
+  String finishingWaiting(String name);
 
   /// No description provided for @fromName.
   ///
@@ -1375,11 +1423,23 @@ abstract class S {
   /// **'الهاتف'**
   String get phone;
 
+  /// No description provided for @plugInForApps.
+  ///
+  /// In ar, this message translates to:
+  /// **'وصّل الهاتف عبر USB (مع تفعيل تصحيح أخطاء USB) لتثبيت التطبيقات من هذا الكمبيوتر.'**
+  String get plugInForApps;
+
   /// No description provided for @plugInPhone.
   ///
   /// In ar, this message translates to:
   /// **'وصّل هاتفًا مع تفعيل تصحيح أخطاء USB. سيُثبَّت HK Cloner ويُفتح عليه تلقائيًا.'**
   String get plugInPhone;
+
+  /// No description provided for @prepareFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تجهيز {category}: {error}'**
+  String prepareFailed(String category, String error);
 
   /// No description provided for @readyAt.
   ///
@@ -1422,6 +1482,12 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'استعادة'**
   String get restore;
+
+  /// No description provided for @restoreApps.
+  ///
+  /// In ar, this message translates to:
+  /// **'استعادة التطبيقات'**
+  String get restoreApps;
 
   /// No description provided for @restoreComplete.
   ///
@@ -1764,6 +1830,12 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'اكتمل النقل'**
   String get transferComplete;
+
+  /// No description provided for @transferDoneSummary.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم نقل {count} عنصر إلى {name}.'**
+  String transferDoneSummary(int count, String name);
 
   /// No description provided for @transferFailed.
   ///

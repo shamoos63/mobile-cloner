@@ -83,10 +83,38 @@ void main() {
     expect(done, {'com.google.android.apps.maps', 'com.whatsapp'});
   });
 
+  testWidgets('picker: Back keeps what was ticked', (tester) async {
+    Set<String>? done;
+    final nav = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(localized(Navigator(
+      key: nav,
+      onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => const SizedBox()),
+    )));
+    nav.currentState!.push(MaterialPageRoute(
+      builder: (context) => AppPickerView(
+        apps: apps,
+        initial: const {},
+        iconFor: (_) async => null,
+        onDone: (s) {
+          done = s;
+          Navigator.pop(context, s);
+        },
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Maps'));
+    await tester.pump();
+    // The system Back button / gesture.
+    await nav.currentState!.maybePop();
+    await tester.pumpAndSettle();
+    expect(done, {'com.google.android.apps.maps'});
+    expect(find.byType(AppPickerView), findsNothing);
+  });
+
   group('AppInstallQueue', () {
     test('checks first: incomplete, needs newer Android, already installed', () async {
       final q = AppInstallQueue(
-        install: (_) async => (result: AppInstallResult.installed, detail: null),
+        install: (_, {package, versionCode = 0}) async => (result: AppInstallResult.installed, detail: null),
         installedVersion: (pkg) async => pkg == 'have.same' ? 5 : (pkg == 'have.older' ? 4 : null),
         sdkInt: 30,
         bundles: [
@@ -111,7 +139,7 @@ void main() {
       final calls = <List<String>>[];
       var answers = [AppInstallResult.installed, AppInstallResult.canceled];
       final q = AppInstallQueue(
-        install: (apks) async {
+        install: (apks, {package, versionCode = 0}) async {
           calls.add(apks);
           final r = answers.first;
           answers = answers.skip(1).toList();

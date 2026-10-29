@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
@@ -32,6 +33,7 @@ import java.io.File
 class Apps(private val activity: Activity) {
     companion object {
         private const val ACTION_INSTALL_STATUS = "com.mobilecloner.app.INSTALL_STATUS"
+        private const val TAG = "HKCloner.Apps"
     }
 
     private val context: Context = activity.applicationContext
@@ -41,23 +43,31 @@ class Apps(private val activity: Activity) {
     /** The install waiting for its final status; one at a time. */
     private var pending: MethodChannel.Result? = null
     private var pendingSession = -1
+    private var pendingPackage: String? = null
+    private var pendingVersion = 0L
     private var awaitingUser = false
     private var receiverRegistered = false
 
     // --- Listing -------------------------------------------------------------
 
-    /** User-installed apps (and updated system apps), not HK Cloner itself. */
+    /**
+     * Third-party apps the user installed and can open: no system apps (not
+     * even updated ones such as Chrome or Samsung's apps), no HK Cloner, and
+     * nothing without a launcher icon (overlays, plugins, services).
+     */
     fun list(): List<Map<String, Any?>> {
         @Suppress("DEPRECATION")
         val packages = pm.getInstalledPackages(0)
-        return packages.mapNotNull { info -> describe(info) }
+        val apps = packages.mapNotNull { info -> describe(info) }
+        Log.i(TAG, "listApps: ${apps.size} of ${packages.size} packages")
+        return apps
     }
 
     private fun describe(info: PackageInfo): Map<String, Any?>? {
         val app = info.applicationInfo ?: return null
-        val system = app.flags and ApplicationInfo.FLAG_SYSTEM != 0
-        val updated = app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
-        if ((system && !updated) || info.packageName == context.packageName) return null
+        val system = app.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+        if (system || info.packageName == context.packageName) return null
+        if (pm.getLaunchIntentForPackage(info.packageName) == null) return null
         val paths = listOfNotNull(app.sourceDir) + (app.splitSourceDirs?.toList() ?: emptyList())
         val files = paths.map { File(it) }
         val readable = files.isNotEmpty() && files.all { it.canRead() }
@@ -85,7 +95,8 @@ class Apps(private val activity: Activity) {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             out.toByteArray()
         }
-    } catch (_: PackageManager.NameNotFoundException) {
+    } catch (e: Exception) {
+        Log.w(TAG, "icon of $pkg", e)
         null
     }
 
@@ -118,7 +129,7 @@ class Apps(private val activity: Activity) {
      * Installs one app from [paths] (base first). Answers `installed`,
      * `canceled`, or `failed:<message>` once Android reports the result.
      */
-    fun install(paths: List<String>, result: MethodChannel.Result) {
+    fun install(paths: List<String>, pkg: String?, versionCode: Long, result: MethodChannel.Result) {
         if (pending != null) return result.error("busy", "Another install is running", null)
         Thread({
             try {
@@ -137,6 +148,8 @@ class Apps(private val activity: Activity) {
                         registerReceiver()
                         pending = result
                         pendingSession = id
+                        pendingPackage = pkg
+                        pendingVersion = versionCode
                         awaitingUser = false
                         val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                             (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
@@ -151,41 +164,62 @@ class Apps(private val activity: Activity) {
                     }
                 }
             } catch (e: Exception) {
+                Log.w(TAG, "install of $paths failed before commit", e)
                 main.post { result.success("failed:${e.message}") }
             }
         }, "app-install").start()
     }
 
     /**
-     * Back in HK Cloner after Android's confirm screen. Some Android
-     * versions send no status when the user backs out of it, so a confirm
-     * that never reports counts as canceled.
+     * Back in HK Cloner after Android's confirm screen. The install may still
+     * be running (newer Android closes the dialog right away), and some
+     * versions send no status when the user backs out. So: watch the
+     * session; once it is gone without a status, the app's installed version
+     * says what happened. A session left waiting a minute counts as canceled.
      */
     fun onResume() {
         if (!awaitingUser || pending == null) return
-        val session = pendingSession
+        watch(pendingSession, 0)
+    }
+
+    private fun watch(session: Int, seconds: Int) {
         main.postDelayed({
-            if (awaitingUser && pending != null && pendingSession == session) {
-                try {
-                    pm.packageInstaller.abandonSession(session)
-                } catch (_: Exception) {
+            if (!awaitingUser || pending == null || pendingSession != session) return@postDelayed
+            val info = pm.packageInstaller.getSessionInfo(session)
+            when {
+                info == null -> {
+                    val have = pendingPackage?.let { installedVersion(it) }
+                    finish(if (have != null && have >= pendingVersion) "installed" else "canceled")
                 }
-                finish("canceled")
+                // Still copying or installing: keep waiting (big apps take a while).
+                info.isActive && seconds < 300 -> watch(session, seconds + 1)
+                seconds < 60 -> watch(session, seconds + 1)
+                else -> {
+                    try {
+                        pm.packageInstaller.abandonSession(session)
+                    } catch (_: Exception) {
+                    }
+                    finish("canceled")
+                }
             }
-        }, 4000)
+        }, 1000)
     }
 
     private fun finish(outcome: String) {
+        Log.i(TAG, "install session $pendingSession: $outcome")
         val r = pending ?: return
         pending = null
         pendingSession = -1
+        pendingPackage = null
         awaitingUser = false
         r.success(outcome)
     }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
-            when (val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
+            val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+            Log.i(TAG, "install status $status ${intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}")
+            when (status) {
                 PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                     @Suppress("DEPRECATION")
                     val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: return finish("failed:no confirm screen")

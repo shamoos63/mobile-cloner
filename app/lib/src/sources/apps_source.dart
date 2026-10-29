@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:cloner_core/cloner_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -13,32 +13,58 @@ import '../platform/android_bridge.dart';
 /// all under `apps/<package>/`. App data is not included: Android keeps it
 /// private to each app.
 class AppsSource {
-  AppsSource(this.bridge);
+  AppsSource(this.bridge, {this.stagingDir});
 
   final AndroidBridge bridge;
+
+  /// Where app.json and icon.png are written; the app's temp folder if null.
+  final String? stagingDir;
   static final _icons = <String, Uint8List?>{};
+
+  static void _log(String message) => debugPrint('HKCloner.apps: $message');
 
   /// User apps by name. Slow on phones with many apps: called when Apps is ticked.
   Future<List<InstalledApp>> list() async =>
       (await bridge.listApps())..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
 
-  /// Launcher icon, cached for the session.
+  /// Launcher icon, cached for the session. Never fails or hangs: an app
+  /// without an icon still moves.
   Future<Uint8List?> icon(String package) async {
     if (_icons.containsKey(package)) return _icons[package];
-    return _icons[package] = await bridge.appIcon(package);
+    try {
+      return _icons[package] = await bridge.appIcon(package).timeout(const Duration(seconds: 3));
+    } catch (e) {
+      _log('no icon for $package: $e');
+      return _icons[package] = null;
+    }
   }
 
-  Future<List<OutgoingFile>> files(Iterable<InstalledApp> apps) async {
-    final staging = p.join((await getTemporaryDirectory()).path, 'apps');
+  Future<List<OutgoingFile>> files(Iterable<InstalledApp> apps) async => (await prepare(apps)).files;
+
+  /// The files to send for [apps], plus the labels of apps whose APKs could
+  /// not be read (they are left out, and the user is told).
+  Future<({List<OutgoingFile> files, List<String> skipped})> prepare(Iterable<InstalledApp> apps) async {
+    final staging = p.join(stagingDir ?? (await getTemporaryDirectory()).path, 'apps');
     final files = <OutgoingFile>[];
-    for (final app in apps.where((a) => a.readable)) {
+    final skipped = <String>[];
+    for (final app in apps) {
       final names = <String>[];
       final apks = <OutgoingFile>[];
-      for (final (i, path) in app.apks.indexed) {
-        // Android names the base APK base.apk; keep that name for the receiver.
-        final name = i == 0 ? AppManifest.baseApk : p.basename(path);
-        names.add(name);
-        apks.add(OutgoingFile.fromFile(File(path), category: ContentCategory.apps, relPath: '${app.packageName}/$name'));
+      try {
+        if (!app.readable || app.apks.isEmpty) throw const FileSystemException('APK not readable');
+        for (final (i, path) in app.apks.indexed) {
+          // Android names the base APK base.apk; keep that name for the receiver.
+          final name = i == 0 ? AppManifest.baseApk : p.basename(path);
+          final file = File(path);
+          // Opening it proves Dart may read it (stat alone doesn't).
+          (await file.open()).closeSync();
+          names.add(name);
+          apks.add(OutgoingFile.fromFile(file, category: ContentCategory.apps, relPath: '${app.packageName}/$name'));
+        }
+      } catch (e) {
+        _log('skipping ${app.packageName}: $e');
+        skipped.add(app.label);
+        continue;
       }
       final dir = Directory(p.join(staging, app.packageName))..createSync(recursive: true);
       // Same timestamps as the base APK: stable file ids across restarts.
@@ -64,8 +90,10 @@ class AppsSource {
             category: ContentCategory.apps, relPath: '${app.packageName}/${AppManifest.iconFileName}'));
       }
       files.addAll(apks);
+      _log('${app.packageName}: ${apks.length} APK(s), ${app.sizeBytes} bytes');
     }
-    return files;
+    _log('prepared ${files.length} files for ${apps.length - skipped.length} apps, skipped ${skipped.length}');
+    return (files: files, skipped: skipped);
   }
 
   /// After a restart: the files for the packages a checkpoint recorded.

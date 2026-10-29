@@ -99,6 +99,14 @@
   },
   "appTitle": "HK Cloner",
   "appUnreadable": "لا يسمح أندرويد لـ HK Cloner بقراءة هذا التطبيق.",
+  "appsBackedUp": "{count, plural, =1{تم نسخ تطبيق واحد احتياطيًا.} =2{تم نسخ تطبيقين احتياطيًا.} few{تم نسخ {count} تطبيقات احتياطيًا.} many{تم نسخ {count} تطبيقًا احتياطيًا.} other{تم نسخ {count} تطبيق احتياطيًا.}}",
+  "@appsBackedUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "appsCount": "{count, plural, =0{لا تطبيقات} =1{تطبيق واحد} =2{تطبيقان} few{{count} تطبيقات} many{{count} تطبيقًا} other{{count} تطبيق}}",
   "@appsCount": {
     "placeholders": {
@@ -115,6 +123,14 @@
       },
       "total": {
         "type": "int"
+      }
+    }
+  },
+  "appsNotCopied": "لم يُنسخ: {names}",
+  "@appsNotCopied": {
+    "placeholders": {
+      "names": {
+        "type": "String"
       }
     }
   },
@@ -138,6 +154,15 @@
       }
     }
   },
+  "appsSkipped": "تعذّرت قراءتها ولن تُنقل: {names}",
+  "@appsSkipped": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "backUpApps": "نسخ التطبيقات احتياطيًا",
   "backUpNow": "انسخ الآن",
   "backingUp": "جارٍ النسخ الاحتياطي",
   "backupFolder": "مجلد النسخ الاحتياطي",
@@ -220,6 +245,20 @@
   "contactsReceived": "تم استلام جهات الاتصال",
   "continueAnotherWay": "المتابعة بطريقة أخرى",
   "copied": "تم نسخه",
+  "copyingAppOf": "جارٍ نسخ {name} ({index} من {total})",
+  "@copyingAppOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "couldNotDelete": "تعذّر الحذف: {error}",
   "@couldNotDelete": {
     "placeholders": {
@@ -366,6 +405,23 @@
     }
   },
   "finishWhatsapp": "أكمل إعداد واتساب",
+  "finishingStuck": "لم يؤكد {name} بعد. إن لم يتغير شيء، اضغط استئناف لإرسال ما تبقى من جديد.",
+  "@finishingStuck": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "finishingUp": "جارٍ الإنهاء...",
+  "finishingWaiting": "أُرسل كل شيء. في انتظار تأكيد {name}.",
+  "@finishingWaiting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "fromName": "من {name}",
   "@fromName": {
     "placeholders": {
@@ -601,7 +657,19 @@
   "permPhotos": "الصور والفيديوهات",
   "permPhotosPurpose": "إرسال معرض الصور واستقباله",
   "phone": "الهاتف",
+  "plugInForApps": "وصّل الهاتف عبر USB (مع تفعيل تصحيح أخطاء USB) لتثبيت التطبيقات من هذا الكمبيوتر.",
   "plugInPhone": "وصّل هاتفًا مع تفعيل تصحيح أخطاء USB. سيُثبَّت HK Cloner ويُفتح عليه تلقائيًا.",
+  "prepareFailed": "تعذّر تجهيز {category}: {error}",
+  "@prepareFailed": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "readyAt": "جاهز · {address}",
   "@readyAt": {
     "placeholders": {
@@ -630,6 +698,7 @@
   },
   "refresh": "تحديث",
   "restore": "استعادة",
+  "restoreApps": "استعادة التطبيقات",
   "restoreComplete": "اكتملت الاستعادة.",
   "restoreFromComputer": "استعادة من الكمبيوتر",
   "restoreFromComputerSubtitle": "استرجع نسخة احتياطية إلى هذا الهاتف",
@@ -731,6 +800,17 @@
   "timeLeft": "الوقت المتبقي",
   "total": "الإجمالي",
   "transferComplete": "اكتمل النقل",
+  "transferDoneSummary": "تم نقل {count} عنصر إلى {name}.",
+  "@transferDoneSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "transferFailed": "فشل النقل: {error}",
   "@transferFailed": {
     "placeholders": {

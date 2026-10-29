@@ -7,6 +7,18 @@ import '../../theme.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/visuals.dart';
 
+/// Where a send is. Each phase has its own buttons, so a finished transfer
+/// never shows Pause and Cancel, and an unfinished one never says done.
+enum TransferPhase {
+  sending,
+
+  /// Every byte went out; the receiver hasn't confirmed (it may still be
+  /// writing, importing contacts or listing apps).
+  finishing,
+  done,
+  interrupted,
+}
+
 class CategoryProgress {
   const CategoryProgress(this.category, this.done, this.total);
   final ContentCategory category;
@@ -37,7 +49,19 @@ class TransferView extends StatelessWidget {
     this.onCancel,
     this.onResume,
     this.onReconnect,
+    this.phase,
+    this.finishingStuck = false,
+    this.onDone,
   });
+
+  /// Null derives it: interrupted when [interruptedReason] is set, else sending.
+  final TransferPhase? phase;
+
+  /// Finishing has waited long enough to offer Resume.
+  final bool finishingStuck;
+  final VoidCallback? onDone;
+
+  TransferPhase get _phase => phase ?? (interruptedReason != null ? TransferPhase.interrupted : TransferPhase.sending);
 
   final String title;
   final String peerName;
@@ -60,7 +84,7 @@ class TransferView extends StatelessWidget {
   final VoidCallback? onResume;
   final VoidCallback? onReconnect;
 
-  bool get interrupted => interruptedReason != null;
+  bool get interrupted => _phase == TransferPhase.interrupted;
 
   @override
   Widget build(BuildContext context) {
@@ -85,10 +109,22 @@ class TransferView extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(ltr('${(fraction * 100).toStringAsFixed(fraction < 0.1 ? 1 : 0)}%'), style: t.displayMedium),
                           Text(
-                            interrupted ? s.paused : formatSpeed(bytesPerSecond),
-                            style: t.titleMedium?.copyWith(color: interrupted ? AppColors.amber : AppColors.indigo),
+                            ltr('${(fraction * 100).toStringAsFixed(fraction < 0.1 ? 1 : 0)}%'),
+                            style: t.displayMedium,
+                          ),
+                          Text(
+                            switch (_phase) {
+                              TransferPhase.interrupted => s.paused,
+                              TransferPhase.finishing => s.finishingUp,
+                              TransferPhase.done => s.allDone,
+                              TransferPhase.sending => formatSpeed(bytesPerSecond),
+                            },
+                            style: t.titleMedium?.copyWith(
+                              color: interrupted
+                                  ? AppColors.amber
+                                  : (_phase == TransferPhase.done ? AppColors.teal : AppColors.indigo),
+                            ),
                           ),
                         ],
                       ),
@@ -131,18 +167,26 @@ class TransferView extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         child: Row(
                           children: [
-                            IconBadge(categoryIcon(c.category), size: 40,
-                                color: c.done == c.total ? AppColors.teal : AppColors.indigo),
+                            IconBadge(
+                              categoryIcon(c.category),
+                              size: 40,
+                              color: c.done == c.total ? AppColors.teal : AppColors.indigo,
+                            ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(children: [
-                                    Text(categoryLabel(c.category), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                                    const Spacer(),
-                                    Text(ltr('${c.done} / ${c.total}'), style: t.bodySmall?.copyWith(color: muted)),
-                                  ]),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        categoryLabel(c.category),
+                                        style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                                      ),
+                                      const Spacer(),
+                                      Text(ltr('${c.done} / ${c.total}'), style: t.bodySmall?.copyWith(color: muted)),
+                                    ],
+                                  ),
                                   const SizedBox(height: 8),
                                   LinearProgressIndicator(
                                     value: c.total == 0 ? 1 : c.done / c.total,
@@ -164,19 +208,63 @@ class TransferView extends StatelessWidget {
                 ),
               ),
             ),
-            if (currentFile != null && !interrupted)
+            if (currentFile != null && _phase == TransferPhase.sending)
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
-                child: Text('${s.filesProgress(doneFiles, totalFiles)} · $currentFile',
-                    style: t.bodySmall?.copyWith(color: muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  '${s.filesProgress(doneFiles, totalFiles)} · $currentFile',
+                  style: t.bodySmall?.copyWith(color: muted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             const SizedBox(height: 20),
-            if (!interrupted)
-              Row(children: [
-                Expanded(child: OutlinedButton.icon(onPressed: onPause, icon: const Icon(Icons.pause_rounded), label: Text(s.pause))),
-                const SizedBox(width: 12),
-                Expanded(child: OutlinedButton(onPressed: onCancel, child: Text(s.cancel))),
-              ]),
+            switch (_phase) {
+              TransferPhase.sending => Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onPause,
+                      icon: const Icon(Icons.pause_rounded),
+                      label: Text(s.pause),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(onPressed: onCancel, child: Text(s.cancel)),
+                  ),
+                ],
+              ),
+              TransferPhase.finishing => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 10),
+                  Text(
+                    finishingStuck ? s.finishingStuck(peerName) : s.finishingWaiting(peerName),
+                    style: t.bodySmall?.copyWith(color: muted),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (finishingStuck) ...[
+                    const SizedBox(height: 10),
+                    FilledButton.icon(
+                      onPressed: onResume,
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: Text(s.resume),
+                    ),
+                  ],
+                ],
+              ),
+              TransferPhase.done => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(s.transferDoneSummary(totalFiles, peerName), style: t.bodyMedium, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(onPressed: onDone, child: Text(s.done)),
+                ],
+              ),
+              TransferPhase.interrupted => const SizedBox.shrink(),
+            },
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -202,11 +290,13 @@ class _Metric extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Expanded(
-      child: Column(children: [
-        Text(value, style: t.titleMedium),
-        const SizedBox(height: 2),
-        Text(label, style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      ]),
+      child: Column(
+        children: [
+          Text(value, style: t.titleMedium),
+          const SizedBox(height: 2),
+          Text(label, style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        ],
+      ),
     );
   }
 }
@@ -232,12 +322,20 @@ class _InterruptedCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Icon(reason.toLowerCase().contains(s.battery.toLowerCase()) ? Icons.battery_alert_rounded : Icons.wifi_off_rounded,
-                  color: AppColors.amber),
-              const SizedBox(width: 10),
-              Expanded(child: Text(reason, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
-            ]),
+            Row(
+              children: [
+                Icon(
+                  reason.toLowerCase().contains(s.battery.toLowerCase())
+                      ? Icons.battery_alert_rounded
+                      : Icons.wifi_off_rounded,
+                  color: AppColors.amber,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(reason, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
             Text(s.nothingLost, style: t.bodySmall),
             const SizedBox(height: 14),

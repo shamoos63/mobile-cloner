@@ -102,7 +102,12 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                     }
                 }
                 "appIcon" -> io.execute {
-                    val png = apps.icon(call.argument<String>("package")!!, call.argument<Int>("size") ?: 96)
+                    // Always answer: a drawable that fails to draw must not hang Dart.
+                    val png = try {
+                        apps.icon(call.argument<String>("package")!!, call.argument<Int>("size") ?: 96)
+                    } catch (_: Throwable) {
+                        null
+                    }
                     main.post { result.success(png) }
                 }
                 "installedAppVersion" -> result.success(apps.installedVersion(call.argument<String>("package")!!))
@@ -111,7 +116,12 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                     apps.openInstallSettings()
                     result.success(null)
                 }
-                "installApp" -> apps.install(call.argument<List<String>>("apks")!!, result)
+                "installApp" -> apps.install(
+                    call.argument<List<String>>("apks")!!,
+                    call.argument<String>("package"),
+                    (call.argument<Number>("versionCode") ?: 0).toLong(),
+                    result,
+                )
                 "multicastLock" -> {
                     setMulticastLock(call.argument<Boolean>("on") == true)
                     result.success(null)

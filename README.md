@@ -24,6 +24,7 @@ batteries.
 - **Resilience**: byte-level resume, a checkpoint file written atomically after every file, same-device takeover so a transfer can continue on a different connection, battery heartbeat that pauses before a phone dies, foreground service so Android doesn't kill the transfer.
 - **Live speed and time left**, measured over a 5 second window.
 - **Desktop backup station**: incremental backups (only new files), per-device backup folders with a `backup.json` manifest, one-click restore to a phone.
+- **Apps**: pick third-party apps (search, sort, select all); each moves as its base and split APKs and the new phone installs them with Android's confirmation (app data stays behind). The computer can back up apps from a USB-linked phone (`adb pull`) and restore them (`adb install-multiple`).
 - **Security**: TLS with self-signed certificates pinned to the fingerprint from discovery or the QR code, optional PIN, path-traversal checks on every incoming file.
 - **Compatible with LocalSend** for plain files in both directions.
 

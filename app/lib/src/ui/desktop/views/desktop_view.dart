@@ -16,6 +16,7 @@ class BackupCardData {
     required this.lastBackup,
     required this.bytesByCategory,
     this.path,
+    this.appCount = 0,
   });
 
   final String alias;
@@ -23,6 +24,9 @@ class BackupCardData {
   final String lastBackup;
   final Map<ContentCategory, int> bytesByCategory;
   final String? path;
+
+  /// Apps in this backup, for "Restore apps".
+  final int appCount;
 
   int get totalBytes => bytesByCategory.values.fold(0, (a, b) => a + b);
 }
@@ -104,7 +108,9 @@ class DesktopHomeView extends StatelessWidget {
     this.onChangeFolder,
     this.onAdbConnect,
     this.onAdbRefresh,
+    this.onAdbBackupApps,
     this.onRestore,
+    this.onRestoreApps,
     this.onOpenFolder,
     this.onPreview,
     this.onDelete,
@@ -129,7 +135,11 @@ class DesktopHomeView extends StatelessWidget {
   final VoidCallback? onChangeFolder;
   final void Function(String serial)? onAdbConnect;
   final VoidCallback? onAdbRefresh;
+
+  /// Pull chosen apps from a USB-linked phone into its backup.
+  final void Function(String serial)? onAdbBackupApps;
   final void Function(BackupCardData)? onRestore;
+  final void Function(BackupCardData)? onRestoreApps;
   final void Function(BackupCardData)? onOpenFolder;
   final void Function(BackupCardData)? onPreview;
   final void Function(BackupCardData)? onDelete;
@@ -182,6 +192,7 @@ class DesktopHomeView extends StatelessWidget {
     hostName: hostName,
     adbDevices: adbDevices,
     onAdbConnect: onAdbConnect,
+    onAdbBackupApps: onAdbBackupApps,
     onAdbRefresh: onAdbRefresh,
   );
 
@@ -260,6 +271,7 @@ class DesktopHomeView extends StatelessWidget {
                 SizedBox(width: w, child: _BackupCard(
                   data: b,
                   onRestore: onRestore,
+                  onRestoreApps: onRestoreApps,
                   onOpen: onOpenFolder,
                   onPreview: onPreview,
                   onDelete: onDelete,
@@ -499,6 +511,7 @@ class _ConnectCard extends StatelessWidget {
     required this.adbDevices,
     this.onAdbConnect,
     this.onAdbRefresh,
+    this.onAdbBackupApps,
   });
 
   final PairingCode? pairing;
@@ -506,6 +519,7 @@ class _ConnectCard extends StatelessWidget {
   final List<AdbDeviceData> adbDevices;
   final void Function(String serial)? onAdbConnect;
   final VoidCallback? onAdbRefresh;
+  final void Function(String serial)? onAdbBackupApps;
 
   @override
   Widget build(BuildContext context) {
@@ -574,11 +588,20 @@ class _ConnectCard extends StatelessWidget {
                             ),
                           )
                         : d.connected
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            child: Text(S.of(context).linked,
-                                style: const TextStyle(color: Color(0xFF99F6E4), fontWeight: FontWeight.w700)),
-                          )
+                        ? Row(mainAxisSize: MainAxisSize.min, children: [
+                            if (onAdbBackupApps != null)
+                              IconButton(
+                                onPressed: () => onAdbBackupApps!(d.serial),
+                                color: Colors.white,
+                                icon: const Icon(Icons.apps_rounded, size: 20),
+                                tooltip: S.of(context).backUpApps,
+                              ),
+                            Padding(
+                              padding: const EdgeInsetsDirectional.only(end: 12),
+                              child: Text(S.of(context).linked,
+                                  style: const TextStyle(color: Color(0xFF99F6E4), fontWeight: FontWeight.w700)),
+                            ),
+                          ])
                         : FilledButton(
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(0, 38),
@@ -681,9 +704,10 @@ class _LiveCard extends StatelessWidget {
 }
 
 class _BackupCard extends StatelessWidget {
-  const _BackupCard({required this.data, this.onRestore, this.onOpen, this.onPreview, this.onDelete});
+  const _BackupCard({required this.data, this.onRestore, this.onRestoreApps, this.onOpen, this.onPreview, this.onDelete});
   final BackupCardData data;
   final void Function(BackupCardData)? onRestore;
+  final void Function(BackupCardData)? onRestoreApps;
   final void Function(BackupCardData)? onOpen;
   final void Function(BackupCardData)? onPreview;
   final void Function(BackupCardData)? onDelete;
@@ -755,6 +779,12 @@ class _BackupCard extends StatelessWidget {
                       icon: const Icon(Icons.delete_outline_rounded),
                       tooltip: S.of(context).deleteBackup,
                     ),
+                    if (data.appCount > 0 && onRestoreApps != null)
+                      IconButton(
+                        onPressed: () => onRestoreApps!(data),
+                        icon: const Icon(Icons.install_mobile_rounded),
+                        tooltip: S.of(context).restoreApps,
+                      ),
                     TextButton(onPressed: () => onOpen?.call(data), child: Text(S.of(context).open)),
                     const SizedBox(width: 4),
                     FilledButton.tonal(

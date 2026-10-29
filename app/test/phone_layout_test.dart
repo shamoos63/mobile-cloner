@@ -136,7 +136,7 @@ void main() {
     body: ListView(padding: const EdgeInsets.all(20), children: [
       AppInstallList(
         queue: AppInstallQueue(
-          install: (_) async => (result: AppInstallResult.installed, detail: null),
+          install: (_, {package, versionCode = 0}) async => (result: AppInstallResult.installed, detail: null),
           installedVersion: (_) async => null,
           sdkInt: 34,
           bundles: [

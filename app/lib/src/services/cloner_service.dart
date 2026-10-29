@@ -105,6 +105,7 @@ class ClonerService extends ChangeNotifier {
         info: self,
         delegate: await _buildDelegate(),
         localStatus: () => localStatus,
+        apps: isAndroid ? _PhoneAppCatalog(bridge) : null,
       );
       await server.start();
       server.events.listen(_onServerEvent);
@@ -216,7 +217,13 @@ class ClonerService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('backupRoot', path);
     await server.stop();
-    server = ClonerServer(identity: identity, info: self, delegate: await _buildDelegate(), localStatus: () => localStatus);
+    server = ClonerServer(
+      identity: identity,
+      info: self,
+      delegate: await _buildDelegate(),
+      localStatus: () => localStatus,
+      apps: isAndroid ? _PhoneAppCatalog(bridge) : null,
+    );
     await server.start();
     server.events.listen(_onServerEvent);
     notifyListeners();
@@ -577,3 +584,29 @@ class ClonerService extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// This phone's apps for a computer linked over USB: the same third-party
+/// list the app picker shows, with the APK paths `adb pull` copies.
+class _PhoneAppCatalog implements AppCatalog {
+  _PhoneAppCatalog(this.bridge);
+  final AndroidBridge bridge;
+
+  @override
+  Future<List<Map<String, Object?>>> list() async => [
+    for (final a in await bridge.listApps())
+      {
+        'package': a.packageName,
+        'label': a.label,
+        'versionName': a.versionName,
+        'versionCode': a.versionCode,
+        'apks': a.apks,
+        'size': a.sizeBytes,
+        'readable': a.readable,
+        'minSdk': ?a.minSdk,
+      },
+  ];
+
+  @override
+  Future<List<int>?> icon(String package) => bridge.appIcon(package);
+}
+

@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cloner_core/cloner_core.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,11 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../l10n.dart';
+import '../../platform/android_bridge.dart';
 import '../../services/app_settings.dart';
 import '../../services/cloner_service.dart';
 import '../../services/format.dart';
 import '../widgets/labels.dart';
 import '../../version.dart';
+import '../phone/views/app_picker_view.dart';
 import 'install_app_dialog.dart';
 import 'title_bar.dart';
 import 'views/desktop_view.dart';
@@ -242,10 +246,10 @@ class _DesktopHomeState extends State<DesktopHome> {
 
   /// Installs the backup's apps on a USB-linked phone, one by one, skipping
   /// those already there at the same or a newer version.
-  Future<void> _installApps(String serial, String dir) async {
+  Future<void> _installApps(String serial, String dir, {Set<String>? only}) async {
     final bundles = [
       for (final b in await AppBundle.scan(p.join(dir, ContentCategory.apps.wireName)))
-        if (b.complete) b,
+        if (b.complete && (only == null || only.contains(b.packageName))) b,
     ];
     if (bundles.isEmpty || !mounted) return;
     final progress = ValueNotifier<(int, String)>((0, ''));
@@ -345,6 +349,196 @@ class _DesktopHomeState extends State<DesktopHome> {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
+  // --- Apps over USB ---------------------------------------------------------
+
+  static const _phoneApi = 'http://127.0.0.1:${AdbBridge.pcToPhonePort}';
+  final Map<String, Uint8List?> _phoneIcons = {};
+
+  /// The phone's third-party apps: from HK Cloner on the phone (names and
+  /// icons) when it answers, else straight from adb (package names only).
+  Future<(List<InstalledApp>, bool fromPhone)> _phoneApps(String serial) async {
+    try {
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
+      final res = await (await client.getUrl(Uri.parse('$_phoneApi${ApiRoute.apps}'))).close().timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final list = jsonDecode(await res.transform(utf8.decoder).join()) as List;
+        client.close();
+        return ([for (final m in list) InstalledApp.fromMap(m as Map)], true);
+      }
+      client.close();
+    } catch (e) {
+      debugPrint('HKCloner.apps: phone app list unavailable, using adb: $e');
+    }
+    final apps = await adb.thirdPartyApps(serial, exclude: androidPackage);
+    return (
+      [
+        for (final a in apps)
+          InstalledApp(
+            packageName: a.packageName,
+            label: a.packageName,
+            versionName: a.versionName,
+            versionCode: a.versionCode,
+            apks: a.apks,
+            sizeBytes: a.sizeBytes,
+            readable: true,
+          ),
+      ],
+      false,
+    );
+  }
+
+  Future<Uint8List?> _phoneIcon(String package) async {
+    if (_phoneIcons.containsKey(package)) return _phoneIcons[package];
+    try {
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
+      final res = await (await client.getUrl(Uri.parse('$_phoneApi${ApiRoute.appIcon}?package=$package'))).close();
+      final bytes = res.statusCode == 200 ? await res.fold<BytesBuilder>(BytesBuilder(), (b, c) => b..add(c)) : null;
+      client.close();
+      return _phoneIcons[package] = bytes?.takeBytes();
+    } catch (_) {
+      return _phoneIcons[package] = null;
+    }
+  }
+
+  /// The app picker in a window of its own (title bar kept).
+  Future<Set<String>?> _pickApps(List<InstalledApp> apps, Future<Uint8List?> Function(String) iconFor) =>
+      Navigator.push<Set<String>>(
+        context,
+        MaterialPageRoute(
+          builder: (route) => Column(children: [
+            const DesktopTitleBar(),
+            Expanded(
+              child: AppPickerView(apps: apps, initial: const {}, iconFor: iconFor, onDone: (s) => Navigator.pop(route, s)),
+            ),
+          ]),
+        ),
+      );
+
+  /// Shows [run]'s progress (index, label) over [total] items.
+  Future<T> _withProgress<T>(String title, int total, Future<T> Function(ValueNotifier<(int, String)> progress) run,
+      String Function(int index, String label) line) async {
+    final progress = ValueNotifier<(int, String)>((0, ''));
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.apps_rounded),
+        title: Text(title),
+        content: ValueListenableBuilder<(int, String)>(
+          valueListenable: progress,
+          builder: (context, v, _) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(line(v.$1, v.$2)),
+            const SizedBox(height: 14),
+            LinearProgressIndicator(value: total == 0 ? null : v.$1 / total),
+          ]),
+        ),
+      ),
+    ));
+    try {
+      return await run(progress);
+    } finally {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      progress.dispose();
+    }
+  }
+
+  /// Back up apps from a USB-linked phone: pick, then `adb pull` each APK
+  /// into the phone's backup folder with app.json and the icon.
+  Future<void> _backupAppsOverUsb(String serial) async {
+    setState(() => _adbBusy.add(serial));
+    List<InstalledApp> apps;
+    bool fromPhone;
+    DeviceInfo device;
+    try {
+      (apps, fromPhone) = await _phoneApps(serial);
+      Device? phone;
+      try {
+        phone = await service.connectManual('127.0.0.1', port: AdbBridge.pcToPhonePort);
+      } catch (_) {}
+      final model = _nameOf(serial);
+      device = phone?.info ?? DeviceInfo(alias: model, fingerprint: serial, deviceModel: model);
+    } catch (e) {
+      if (mounted) setState(() => _adbBusy.remove(serial));
+      _snack(tr.adbSetupFailed(_short(e)));
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _adbBusy.remove(serial));
+    apps.sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+    final chosen = await _pickApps(apps, fromPhone ? _phoneIcon : (_) async => null);
+    if (chosen == null || chosen.isEmpty || !mounted) return;
+    final picked = [for (final a in apps) if (chosen.contains(a.packageName)) a];
+    final store = BackupStore(await service.backupRoot());
+    final failed = <String>[];
+    var files = 0, bytes = 0, copied = 0;
+    await _withProgress(tr.backUpApps, picked.length, (progress) async {
+      for (final (i, a) in picked.indexed) {
+        progress.value = (i, a.label);
+        final dir = p.join(store.deviceDir(device), ContentCategory.apps.wireName, a.packageName);
+        try {
+          await Directory(dir).create(recursive: true);
+          final names = <String>[];
+          for (final (j, remote) in a.apks.indexed) {
+            final name = j == 0 ? AppManifest.baseApk : p.posix.basename(remote);
+            await adb.pull(serial, remote, p.join(dir, name));
+            names.add(name);
+            bytes += await File(p.join(dir, name)).length();
+            files++;
+          }
+          await File(p.join(dir, AppManifest.fileName)).writeAsString(jsonEncode(AppManifest(
+            packageName: a.packageName,
+            label: a.label,
+            versionName: a.versionName,
+            versionCode: a.versionCode,
+            apks: names,
+            sizeBytes: a.sizeBytes,
+            minSdk: a.minSdk,
+          ).toJson()));
+          final icon = fromPhone ? await _phoneIcon(a.packageName) : null;
+          if (icon != null) await File(p.join(dir, AppManifest.iconFileName)).writeAsBytes(icon);
+          copied++;
+        } catch (e) {
+          debugPrint('HKCloner.apps: pulling ${a.packageName} failed: $e');
+          failed.add(a.label);
+        }
+      }
+    }, (i, label) => tr.copyingAppOf(label, i + 1, picked.length));
+    if (copied > 0) await store.recordCategory(device, ContentCategory.apps, files: files, bytes: bytes);
+    await _loadBackups();
+    _snack([tr.appsBackedUp(copied), if (failed.isNotEmpty) tr.appsNotCopied(failed.join(', '))].join(' '));
+  }
+
+  /// "Restore apps" on a backup: pick some, install them on the USB phone.
+  Future<void> _restoreApps(BackupCardData b) async {
+    final dir = b.path!;
+    final bundles = await AppBundle.scan(p.join(dir, ContentCategory.apps.wireName));
+    if (bundles.isEmpty || !mounted) return;
+    final serial = _linked.firstOrNull;
+    if (serial == null) {
+      _snack(tr.plugInForApps);
+      return;
+    }
+    final icons = {for (final x in bundles) x.packageName: x.iconPath};
+    final chosen = await _pickApps(
+      [
+        for (final x in bundles)
+          InstalledApp(
+            packageName: x.packageName,
+            label: x.manifest.label,
+            versionName: x.manifest.versionName,
+            versionCode: x.manifest.versionCode,
+            apks: x.apkPaths,
+            sizeBytes: x.manifest.sizeBytes,
+            readable: x.complete,
+            minSdk: x.manifest.minSdk,
+          ),
+      ],
+      (pkg) async => icons[pkg] == null ? null : File(icons[pkg]!).readAsBytes(),
+    );
+    if (chosen == null || chosen.isEmpty) return;
+    await _installApps(serial, dir, only: chosen);
+  }
+
   BackupCardData _card((String, BackupManifest) b) {
     final m = b.$2;
     final bytes = <ContentCategory, int>{};
@@ -359,7 +553,13 @@ class _DesktopHomeState extends State<DesktopHome> {
       lastBackup: _stamp(when),
       bytesByCategory: bytes,
       path: b.$1,
+      appCount: _appCount(b.$1),
     );
+  }
+
+  static int _appCount(String dir) {
+    final apps = Directory(p.join(dir, ContentCategory.apps.wireName));
+    return apps.existsSync() ? apps.listSync().whereType<Directory>().length : 0;
   }
 
   /// One row per category per backup, newest first.
@@ -439,6 +639,8 @@ class _DesktopHomeState extends State<DesktopHome> {
           onChangeFolder: _changeFolder,
           onAdbConnect: _link,
           onAdbRefresh: _refreshAdb,
+          onAdbBackupApps: _backupAppsOverUsb,
+          onRestoreApps: _restoreApps,
           onRestore: (b) => _restore(b.path!),
           onOpenFolder: (b) => _openFolder(b.path!),
           onPreview: (b) => _preview(b.path!),

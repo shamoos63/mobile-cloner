@@ -44,7 +44,8 @@ class AppInstallQueue extends ChangeNotifier {
     bundles: bundles,
   );
 
-  final Future<({AppInstallResult result, String? detail})> Function(List<String> apks) install;
+  final Future<({AppInstallResult result, String? detail})> Function(List<String> apks, {String? package, int versionCode})
+  install;
   final Future<int?> Function(String package) installedVersion;
   final int sdkInt;
   final List<AppInstallItem> items;
@@ -97,7 +98,8 @@ class AppInstallQueue extends ChangeNotifier {
       ..detail = null;
     notifyListeners();
     try {
-      final r = await install(item.bundle.apkPaths);
+      final m = item.bundle.manifest;
+      final r = await install(item.bundle.apkPaths, package: m.packageName, versionCode: m.versionCode);
       item.state = switch (r.result) {
         AppInstallResult.installed => AppInstallState.installed,
         AppInstallResult.canceled => AppInstallState.canceled,

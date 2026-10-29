@@ -2,7 +2,7 @@ name: mobile_cloner
 description: "Move everything from your old phone to the new one, and back it up to your computer."
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.8.1

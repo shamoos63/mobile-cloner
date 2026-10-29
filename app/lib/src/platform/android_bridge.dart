@@ -159,8 +159,11 @@ class AndroidBridge {
 
   /// Installs one app (base APK first, then splits) and waits for Android's
   /// answer, after the user confirmed or canceled. Failure text in [detail].
-  Future<({AppInstallResult result, String? detail})> installApp(List<String> apks) async {
-    final r = await _ch.invokeMethod<String>('installApp', {'apks': apks}) ?? 'failed:';
+  /// [package] and [versionCode] tell Android's silence apart afterwards:
+  /// installed if that version is now on the phone, otherwise canceled.
+  Future<({AppInstallResult result, String? detail})> installApp(List<String> apks, {String? package, int versionCode = 0}) async {
+    final r = await _ch.invokeMethod<String>('installApp', {'apks': apks, 'package': package, 'versionCode': versionCode}) ??
+        'failed:';
     if (r == 'installed') return (result: AppInstallResult.installed, detail: null);
     if (r == 'canceled') return (result: AppInstallResult.canceled, detail: null);
     return (result: AppInstallResult.failed, detail: r.replaceFirst('failed:', ''));
