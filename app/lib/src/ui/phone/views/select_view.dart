@@ -136,7 +136,11 @@ class _ItemCard extends StatelessWidget {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final details = [
       if (item.count != null)
-        item.category == ContentCategory.contacts ? S.of(context).contactsCount(item.count!) : S.of(context).filesCount(item.count!),
+        switch (item.category) {
+          ContentCategory.contacts => S.of(context).contactsCount(item.count!),
+          ContentCategory.apps => S.of(context).appsCount(item.count!),
+          _ => S.of(context).filesCount(item.count!),
+        },
       if (item.bytes != null && item.bytes! > 0) formatBytes(item.bytes!),
       if (item.note != null) item.note!,
     ].join(' · ');

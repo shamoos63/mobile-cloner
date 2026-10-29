@@ -2,11 +2,14 @@ import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n.dart';
+import '../../platform/android_bridge.dart';
 import '../../services/cloner_service.dart';
+import '../../sources/apps_source.dart';
 import '../../sources/contacts_source.dart';
 import '../../sources/media_source.dart';
 import '../../sources/wallpaper_source.dart';
 import '../../sources/whatsapp_source.dart';
+import 'app_picker_page.dart';
 import 'transfer_page.dart';
 import 'views/select_view.dart';
 
@@ -25,6 +28,7 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
   late final contacts = ContactsSource(service.bridge);
   late final whatsapp = WhatsAppSource(service.bridge);
   late final wallpaper = WallpaperSource(service.bridge);
+  late final appsSource = AppsSource(service.bridge);
 
   final Map<ContentCategory, List<OutgoingFile>> _files = {};
   final Map<ContentCategory, int> _counts = {};
@@ -33,6 +37,10 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
   final Map<WhatsAppVariant, WhatsAppScan> _wa = {};
   bool _chatsOnly = false;
   bool _wallpaperDenied = false;
+
+  /// Installed apps, listed the first time Apps is ticked.
+  Future<List<InstalledApp>>? _appList;
+  Set<String> _chosenApps = {};
 
   @override
   void initState() {
@@ -101,6 +109,10 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
   }
 
   void _toggle(ContentCategory c, bool on) {
+    if (c == ContentCategory.apps) {
+      on ? _chooseApps() : setState(() => _selected.remove(c));
+      return;
+    }
     setState(() => on ? _selected.add(c) : _selected.remove(c));
     final variant = WhatsAppVariant.fromCategory(c);
     if (on && variant != null && !_wa.containsKey(variant) && !_loading.contains(c)) {
@@ -114,6 +126,29 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
       _wa[v] = scan;
       _counts[v.category] = scan.files.length;
       return scan.files;
+    });
+  }
+
+  /// Opens the app picker; the chosen apps' APKs become the Apps files.
+  Future<void> _chooseApps() async {
+    final list = _appList ??= appsSource.list();
+    final chosen = await Navigator.push<Set<String>>(
+      context,
+      MaterialPageRoute(builder: (_) => AppPickerPage(source: appsSource, apps: list, initial: _chosenApps)),
+    );
+    if (chosen == null || !mounted) return;
+    setState(() => _chosenApps = chosen);
+    if (chosen.isEmpty) {
+      setState(() {
+        _selected.remove(ContentCategory.apps);
+        _files.remove(ContentCategory.apps);
+      });
+      return;
+    }
+    final apps = [for (final a in await list) if (chosen.contains(a.packageName)) a];
+    _load(ContentCategory.apps, () async {
+      _counts[ContentCategory.apps] = apps.length;
+      return appsSource.files(apps);
     });
   }
 
@@ -149,6 +184,11 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
         }
       }
     }
+    if (c == ContentCategory.apps) {
+      warning = S.of(context).appsOnlyNote;
+      action = S.of(context).chooseApps;
+      onAction = _chooseApps;
+    }
     if (c == ContentCategory.wallpaper && _wallpaperDenied) {
       warning = S.of(context).wallpaperNeedsAllFiles;
       action = S.of(context).allow;
@@ -177,11 +217,17 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
         ContentCategory.photos,
         ContentCategory.videos,
         ContentCategory.wallpaper,
+        // Largest and least urgent: last.
+        ContentCategory.apps,
       ])
         if (_selected.contains(c)) ...?_files[c],
     ];
     if (files.isEmpty) return;
-    service.send(widget.target, files, options: {'whatsAppChatsOnly': _chatsOnly});
+    service.send(widget.target, files, options: {
+      'whatsAppChatsOnly': _chatsOnly,
+      // Lets a restarted app rebuild the Apps files for the same packages.
+      if (_selected.contains(ContentCategory.apps)) 'apps': [..._chosenApps],
+    });
     await Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TransferPage()));
   }
 
@@ -194,6 +240,7 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
       ContentCategory.whatsapp,
       ContentCategory.whatsappBusiness,
       ContentCategory.wallpaper,
+      ContentCategory.apps,
     ];
     return SelectContentView(
       targetName: widget.target.info.alias,

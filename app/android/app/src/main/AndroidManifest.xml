@@ -15,6 +15,12 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="33" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Apps: list the user's installed apps to copy them (Android 11+
+         package visibility; a Play Store release must justify this), and
+         install the ones received. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Phone-to-phone USB cable: one phone is USB host, the other an
          Android Open Accessory. Neither is required to install. -->
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />

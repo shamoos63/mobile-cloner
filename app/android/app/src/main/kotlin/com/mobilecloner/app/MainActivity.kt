@@ -47,6 +47,11 @@ class MainActivity : FlutterActivity() {
         bridge?.onRequestPermissionsResult(requestCode, grantResults)
     }
 
+    override fun onResume() {
+        super.onResume()
+        bridge?.onResume()
+    }
+
     override fun onDestroy() {
         usbLink?.dispose()
         bridge?.dispose()

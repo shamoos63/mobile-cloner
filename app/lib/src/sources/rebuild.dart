@@ -1,6 +1,7 @@
 import 'package:cloner_core/cloner_core.dart';
 
 import '../platform/android_bridge.dart';
+import 'apps_source.dart';
 import 'contacts_source.dart';
 import 'media_source.dart';
 import 'wallpaper_source.dart';
@@ -24,6 +25,9 @@ Future<List<OutgoingFile>> rebuildFiles(AndroidBridge bridge, TransferCheckpoint
         files.addAll(scan.files);
       case ContentCategory.wallpaper:
         files.addAll((await WallpaperSource(bridge).export()).files);
+      case ContentCategory.apps:
+        final packages = [for (final p in cp.options['apps'] as List? ?? const []) '$p'];
+        files.addAll(await AppsSource(bridge).filesFor(packages));
       default:
         break;
     }

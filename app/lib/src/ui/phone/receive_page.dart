@@ -12,6 +12,7 @@ import '../theme.dart';
 import '../widgets/discovery_access.dart';
 import '../widgets/usb_cable_status.dart';
 import '../widgets/visuals.dart';
+import 'views/app_install_list.dart';
 import 'views/receive_view.dart';
 import 'views/transfer_view.dart';
 
@@ -206,6 +207,28 @@ class _ReportView extends StatelessWidget {
   const _ReportView({required this.report});
   final RestoreReport report;
 
+  /// "Install unknown apps" must be on for HK Cloner (Android 8+).
+  static Future<bool> _mayInstall(BuildContext context) async {
+    final bridge = ClonerService.instance.bridge;
+    if (await bridge.canInstallApps()) return true;
+    if (!context.mounted) return false;
+    final l = S.of(context);
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.install_mobile_rounded),
+        title: Text(l.allowInstallTitle),
+        content: Text(l.allowInstallBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.openSettings)),
+        ],
+      ),
+    );
+    if (open == true) await bridge.openInstallSettings();
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -268,6 +291,10 @@ class _ReportView extends StatelessWidget {
                 subtitle: Text(l.wallpaperSetHint),
               ),
             ),
+          ],
+          if (report.apps case final apps? when apps.items.isNotEmpty) ...[
+            SectionLabel(l.installApps),
+            AppInstallList(queue: apps, beforeInstall: () => _mayInstall(context)),
           ],
           for (final p in report.problems)
             Padding(padding: const EdgeInsets.only(top: 12), child: Text(p, style: TextStyle(color: Theme.of(context).colorScheme.error))),

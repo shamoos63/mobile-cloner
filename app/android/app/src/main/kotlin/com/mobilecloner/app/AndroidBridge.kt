@@ -49,6 +49,7 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
     private val context: Context = activity.applicationContext
     private val saf = SafStore(context)
     private val wallpapers = Wallpapers(context)
+    private val apps = Apps(activity)
     private val io = Executors.newCachedThreadPool()
     private val main = Handler(Looper.getMainLooper())
     private val pending = HashMap<Int, MethodChannel.Result>()
@@ -92,6 +93,25 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                     )
                     result.success(null)
                 }
+                "listApps" -> io.execute {
+                    try {
+                        val list = apps.list()
+                        main.post { result.success(list) }
+                    } catch (e: Exception) {
+                        main.post { result.error("apps", e.message, null) }
+                    }
+                }
+                "appIcon" -> io.execute {
+                    val png = apps.icon(call.argument<String>("package")!!, call.argument<Int>("size") ?: 96)
+                    main.post { result.success(png) }
+                }
+                "installedAppVersion" -> result.success(apps.installedVersion(call.argument<String>("package")!!))
+                "canInstallApps" -> result.success(apps.canInstall())
+                "openInstallSettings" -> {
+                    apps.openInstallSettings()
+                    result.success(null)
+                }
+                "installApp" -> apps.install(call.argument<List<String>>("apks")!!, result)
                 "multicastLock" -> {
                     setMulticastLock(call.argument<Boolean>("on") == true)
                     result.success(null)
@@ -465,7 +485,11 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
         return startSafely(intent)
     }
 
+    /** Back in the app, e.g. from Android's install confirm screen. */
+    fun onResume() = apps.onResume()
+
     fun dispose() {
+        apps.dispose()
         multicastLock?.let { if (it.isHeld) it.release() }
         saf.dispose()
         hotspotReservation?.close()

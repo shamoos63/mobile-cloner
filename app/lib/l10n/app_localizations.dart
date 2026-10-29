@@ -175,6 +175,18 @@ abstract class S {
   /// **'سماح'**
   String get allow;
 
+  /// No description provided for @allowInstallBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يحتاج أندرويد إلى تفعيل \"تثبيت التطبيقات غير المعروفة\" لتطبيق HK Cloner. فعّله ثم عُد إلى هنا.'**
+  String get allowInstallBody;
+
+  /// No description provided for @allowInstallTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسمح لـ HK Cloner بتثبيت التطبيقات'**
+  String get allowInstallTitle;
+
   /// No description provided for @allowPermissionToFind.
   ///
   /// In ar, this message translates to:
@@ -229,11 +241,89 @@ abstract class S {
   /// **'إصدار HK Cloner على {device} قديم'**
   String appOutdatedOn(String device);
 
+  /// No description provided for @appStatusAlreadyInstalled.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثبّت مسبقًا (الإصدار نفسه أو أحدث)'**
+  String get appStatusAlreadyInstalled;
+
+  /// No description provided for @appStatusCanceled.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُلغي'**
+  String get appStatusCanceled;
+
+  /// No description provided for @appStatusFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل: {reason}'**
+  String appStatusFailed(String reason);
+
+  /// No description provided for @appStatusIncomplete.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُستلم بالكامل'**
+  String get appStatusIncomplete;
+
+  /// No description provided for @appStatusInstalled.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثبّت'**
+  String get appStatusInstalled;
+
+  /// No description provided for @appStatusInstalling.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ التثبيت...'**
+  String get appStatusInstalling;
+
+  /// No description provided for @appStatusNeedsAndroid.
+  ///
+  /// In ar, this message translates to:
+  /// **'يحتاج إصدار أندرويد أحدث (API {level})'**
+  String appStatusNeedsAndroid(int level);
+
   /// No description provided for @appTitle.
   ///
   /// In ar, this message translates to:
   /// **'HK Cloner'**
   String get appTitle;
+
+  /// No description provided for @appUnreadable.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يسمح أندرويد لـ HK Cloner بقراءة هذا التطبيق.'**
+  String get appUnreadable;
+
+  /// No description provided for @appsCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا تطبيقات} =1{تطبيق واحد} =2{تطبيقان} few{{count} تطبيقات} many{{count} تطبيقًا} other{{count} تطبيق}}'**
+  String appsCount(int count);
+
+  /// No description provided for @appsInstalledSummary.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تثبيت {installed} من {total} تطبيق.'**
+  String appsInstalledSummary(int installed, int total);
+
+  /// No description provided for @appsNotInstalled.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُثبَّت: {names}'**
+  String appsNotInstalled(String names);
+
+  /// No description provided for @appsOnlyNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'يُنسخ التطبيق فقط. تبقى بيانات التطبيق وتسجيلات الدخول على الهاتف القديم.'**
+  String get appsOnlyNote;
+
+  /// No description provided for @appsSelected.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لم يُحدَّد أي تطبيق} =1{تطبيق واحد · {size}} =2{تطبيقان · {size}} few{{count} تطبيقات · {size}} many{{count} تطبيقًا · {size}} other{{count} تطبيق · {size}}}'**
+  String appsSelected(int count, String size);
 
   /// No description provided for @backUpNow.
   ///
@@ -409,6 +499,12 @@ abstract class S {
   /// **'اختر ملف HK Cloner بصيغة APK'**
   String get chooseApkDialogTitle;
 
+  /// No description provided for @chooseApps.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر التطبيقات'**
+  String get chooseApps;
+
   /// No description provided for @chooseComputer.
   ///
   /// In ar, this message translates to:
@@ -510,6 +606,12 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'فُتح تطبيق جهات الاتصال مع الملف. اختر مكان حفظها.'**
   String get contactsImportHint;
+
+  /// No description provided for @contactsNoApp.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُعثر على تطبيق جهات اتصال لاستيراد contacts.vcf.'**
+  String get contactsNoApp;
 
   /// No description provided for @contactsReceived.
   ///
@@ -805,6 +907,30 @@ abstract class S {
   /// **'كيف يتصل الهاتفان؟'**
   String get howConnected;
 
+  /// No description provided for @install.
+  ///
+  /// In ar, this message translates to:
+  /// **'تثبيت'**
+  String get install;
+
+  /// No description provided for @installAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'تثبيت الكل'**
+  String get installAll;
+
+  /// No description provided for @installApps.
+  ///
+  /// In ar, this message translates to:
+  /// **'تثبيت التطبيقات'**
+  String get installApps;
+
+  /// No description provided for @installAppsHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يطلب منك أندرويد تأكيد كل تطبيق. سجّل الدخول من جديد في التطبيقات التي تحتاج ذلك.'**
+  String get installAppsHint;
+
   /// No description provided for @installBlocked.
   ///
   /// In ar, this message translates to:
@@ -864,6 +990,12 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'على الهاتف نسخة مختلفة من HK Cloner (من كمبيوتر آخر أو من متجر آخر). لا يستبدلها أندرويد إلا بعد إلغاء تثبيتها، وهذا يحذف بيانات HK Cloner على الهاتف: إعداداته وأي نقل غير مكتمل. لن تُمس الصور وجهات الاتصال والتطبيقات الأخرى.'**
   String get installUpdateIncompatible;
+
+  /// No description provided for @installingAppOf.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ تثبيت {name} ({index} من {total})'**
+  String installingAppOf(String name, int index, int total);
 
   /// No description provided for @installingOn.
   ///
@@ -949,6 +1081,12 @@ abstract class S {
   /// **'متصل'**
   String get linked;
 
+  /// No description provided for @loadingApps.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ تحميل التطبيقات...'**
+  String get loadingApps;
+
   /// No description provided for @locationPermission.
   ///
   /// In ar, this message translates to:
@@ -1026,6 +1164,12 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'تعذّر الوصول إلى الجهاز الآخر على أيٍّ من عناوينه.'**
   String get noAddressReachable;
+
+  /// No description provided for @noAppsFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُعثر على تطبيقات'**
+  String get noAppsFound;
 
   /// No description provided for @noBackupsYet.
   ///
@@ -1369,6 +1513,12 @@ abstract class S {
   /// **'جارٍ الفحص...'**
   String get scanning;
 
+  /// No description provided for @searchApps.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث في التطبيقات'**
+  String get searchApps;
+
   /// No description provided for @sectionAbout.
   ///
   /// In ar, this message translates to:
@@ -1447,6 +1597,18 @@ abstract class S {
   /// **'النقل'**
   String get sectionTransfers;
 
+  /// No description provided for @selectAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد الكل'**
+  String get selectAll;
+
+  /// No description provided for @selectNone.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء التحديد'**
+  String get selectNone;
+
   /// No description provided for @selfBatteryLowBody.
   ///
   /// In ar, this message translates to:
@@ -1506,6 +1668,18 @@ abstract class S {
   /// In ar, this message translates to:
   /// **'{done} من {total}'**
   String sizeOfSize(String done, String total);
+
+  /// No description provided for @sortName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم'**
+  String get sortName;
+
+  /// No description provided for @sortSize.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحجم'**
+  String get sortSize;
 
   /// No description provided for @startBackup.
   ///

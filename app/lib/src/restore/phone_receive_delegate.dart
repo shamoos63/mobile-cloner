@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../l10n.dart';
 import '../platform/android_bridge.dart';
+import '../services/app_installer.dart';
 import 'receive_journal.dart';
 import 'writers.dart';
 
@@ -19,6 +20,9 @@ class RestoreReport {
   bool wallpaperSet = false;
   final Set<WhatsAppVariant> whatsApp = {};
   final List<String> problems = [];
+
+  /// Apps received this session, for the "Install apps" list.
+  AppInstallQueue? apps;
 }
 
 /// Receiving side on a phone: puts each file where it belongs (gallery,
@@ -89,6 +93,7 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
     final report = RestoreReport(session);
     final scanPaths = <String>[];
     final wallpapers = <String, String>{};
+    final appPackages = <String>{};
     for (final status in session.files.values) {
       if (status.state != FileState.done) continue;
       final file = status.file;
@@ -99,6 +104,8 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
           if (whatsApp == null) scanPaths.add(p.join(info.storageRoot, path));
         case DeferredTarget(category: ContentCategory.contacts):
           report.contactsFiles++;
+        case DeferredTarget(category: ContentCategory.apps, :final relPath):
+          if (AppBundle.packageOf(relPath) case final pkg?) appPackages.add(pkg);
         case DeferredTarget(category: ContentCategory.wallpaper, :final relPath):
           wallpapers[p.basenameWithoutExtension(relPath)] = p.join(stagingDir, ContentCategory.wallpaper.wireName, relPath);
         default:
@@ -110,7 +117,7 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
       final vcf = p.join(stagingDir, ContentCategory.contacts.wireName, 'contacts.vcf');
       if (await File(vcf).exists()) {
         report.contactsImportOpened = await bridge.importVcf(vcf);
-        if (!report.contactsImportOpened) report.problems.add('No Contacts app found to import contacts.vcf.');
+        if (!report.contactsImportOpened) report.problems.add(tr.contactsNoApp);
       }
     }
     if (wallpapers.isNotEmpty) {
@@ -119,6 +126,16 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
       } catch (e) {
         report.problems.add(tr.wallpaperFailed('$e'));
       }
+    }
+    if (appPackages.isNotEmpty) {
+      final bundles = await AppBundle.scan(p.join(stagingDir, ContentCategory.apps.wireName));
+      final queue = AppInstallQueue.forPhone(
+        bridge,
+        info.sdkInt,
+        [for (final b in bundles) if (appPackages.contains(b.packageName)) b],
+      );
+      await queue.check();
+      report.apps = queue;
     }
     onReport(report);
   }

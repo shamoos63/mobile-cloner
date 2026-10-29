@@ -20,6 +20,8 @@
   "adbUpdatedOpened": "تم التحديث والفتح. اختر على الهاتف ما تريد نسخه احتياطيًا.",
   "allDone": "اكتمل كل شيء",
   "allow": "سماح",
+  "allowInstallBody": "يحتاج أندرويد إلى تفعيل \"تثبيت التطبيقات غير المعروفة\" لتطبيق HK Cloner. فعّله ثم عُد إلى هنا.",
+  "allowInstallTitle": "اسمح لـ HK Cloner بتثبيت التطبيقات",
   "allowPermissionToFind": "اسمح بإذن \"{name}\" للعثور على الهاتف الآخر",
   "@allowPermissionToFind": {
     "placeholders": {
@@ -74,7 +76,68 @@
       }
     }
   },
+  "appStatusAlreadyInstalled": "مثبّت مسبقًا (الإصدار نفسه أو أحدث)",
+  "appStatusCanceled": "أُلغي",
+  "appStatusFailed": "فشل: {reason}",
+  "@appStatusFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "appStatusIncomplete": "لم يُستلم بالكامل",
+  "appStatusInstalled": "مثبّت",
+  "appStatusInstalling": "جارٍ التثبيت...",
+  "appStatusNeedsAndroid": "يحتاج إصدار أندرويد أحدث (API {level})",
+  "@appStatusNeedsAndroid": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
   "appTitle": "HK Cloner",
+  "appUnreadable": "لا يسمح أندرويد لـ HK Cloner بقراءة هذا التطبيق.",
+  "appsCount": "{count, plural, =0{لا تطبيقات} =1{تطبيق واحد} =2{تطبيقان} few{{count} تطبيقات} many{{count} تطبيقًا} other{{count} تطبيق}}",
+  "@appsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "appsInstalledSummary": "تم تثبيت {installed} من {total} تطبيق.",
+  "@appsInstalledSummary": {
+    "placeholders": {
+      "installed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "appsNotInstalled": "لم يُثبَّت: {names}",
+  "@appsNotInstalled": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "appsOnlyNote": "يُنسخ التطبيق فقط. تبقى بيانات التطبيق وتسجيلات الدخول على الهاتف القديم.",
+  "appsSelected": "{count, plural, =0{لم يُحدَّد أي تطبيق} =1{تطبيق واحد · {size}} =2{تطبيقان · {size}} few{{count} تطبيقات · {size}} many{{count} تطبيقًا · {size}} other{{count} تطبيق · {size}}}",
+  "@appsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "backUpNow": "انسخ الآن",
   "backingUp": "جارٍ النسخ الاحتياطي",
   "backupFolder": "مجلد النسخ الاحتياطي",
@@ -114,6 +177,7 @@
   "chatsOnly": "المحادثات فقط",
   "chooseApk": "اختيار ملف APK...",
   "chooseApkDialogTitle": "اختر ملف HK Cloner بصيغة APK",
+  "chooseApps": "اختر التطبيقات",
   "chooseComputer": "اختر جهاز كمبيوتر",
   "chooseNewPhone": "اختر الهاتف الجديد",
   "chooseWhatToMove": "اختر ما تريد نقله",
@@ -152,6 +216,7 @@
     }
   },
   "contactsImportHint": "فُتح تطبيق جهات الاتصال مع الملف. اختر مكان حفظها.",
+  "contactsNoApp": "لم يُعثر على تطبيق جهات اتصال لاستيراد contacts.vcf.",
   "contactsReceived": "تم استلام جهات الاتصال",
   "continueAnotherWay": "المتابعة بطريقة أخرى",
   "copied": "تم نسخه",
@@ -332,6 +397,10 @@
   },
   "hotspotUseSettings": "شغّل نقطة الاتصال من الإعدادات، ووصّل الهاتف القديم بها، ثم امسح الرمز.",
   "howConnected": "كيف يتصل الهاتفان؟",
+  "install": "تثبيت",
+  "installAll": "تثبيت الكل",
+  "installApps": "تثبيت التطبيقات",
+  "installAppsHint": "يطلب منك أندرويد تأكيد كل تطبيق. سجّل الدخول من جديد في التطبيقات التي تحتاج ذلك.",
   "installBlocked": "رفض الهاتف التثبيت. انظر إلى الهاتف: إن ظهر سؤال، اضغط تثبيت (أو \"التثبيت على أي حال\"). في هواتف Xiaomi فعّل خيارات المطوّر > \"التثبيت عبر USB\". ثم حاول مجددًا.",
   "installDowngrade": "على الهاتف إصدار أحدث من HK Cloner. تثبيت هذا الإصدار يعني إلغاء تثبيت الأحدث أولًا، وهذا يحذف بيانات HK Cloner على الهاتف. لن تُمس الصور وجهات الاتصال والتطبيقات الأخرى.",
   "installExplain": "سيثبّت هذا الكمبيوتر HK Cloner على الهاتف عبر الكابل ثم يفتحه.",
@@ -356,6 +425,20 @@
   "installOnPhone": "التثبيت على الهاتف",
   "installTapInstall": "إذا سألك الهاتف عن التثبيت، اضغط تثبيت.",
   "installUpdateIncompatible": "على الهاتف نسخة مختلفة من HK Cloner (من كمبيوتر آخر أو من متجر آخر). لا يستبدلها أندرويد إلا بعد إلغاء تثبيتها، وهذا يحذف بيانات HK Cloner على الهاتف: إعداداته وأي نقل غير مكتمل. لن تُمس الصور وجهات الاتصال والتطبيقات الأخرى.",
+  "installingAppOf": "جارٍ تثبيت {name} ({index} من {total})",
+  "@installingAppOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "installingOn": "جارٍ التثبيت على {device}. قد يستغرق ذلك دقيقة.",
   "@installingOn": {
     "placeholders": {
@@ -415,6 +498,7 @@
     }
   },
   "linked": "متصل",
+  "loadingApps": "جارٍ تحميل التطبيقات...",
   "locationPermission": "الموقع",
   "lookForPhones": "البحث عن هواتف",
   "lookingForDevices": "جارٍ البحث عن الأجهزة. على الجهاز الآخر، افتح HK Cloner واضغط استقبال.",
@@ -428,6 +512,7 @@
   "nearbyDevicesPermission": "الأجهزة المجاورة",
   "nearbyOnWifi": "قريبة على شبكة Wi-Fi",
   "noAddressReachable": "تعذّر الوصول إلى الجهاز الآخر على أيٍّ من عناوينه.",
+  "noAppsFound": "لم يُعثر على تطبيقات",
   "noBackupsYet": "لا توجد نسخ احتياطية بعد. افتح HK Cloner على هاتف واضغط \"نسخ احتياطي إلى الكمبيوتر\".",
   "noBundledApk": "لم يُعثر على تطبيق الهاتف في هذه النسخة من HK Cloner. اختر ملف HK Cloner بصيغة APK ({file}) لتثبيته على الهاتف.",
   "@noBundledApk": {
@@ -573,6 +658,7 @@
   "scanTheCode": "امسح الرمز",
   "scanThisWithOldPhone": "امسح هذا الرمز بتطبيق HK Cloner على هاتفك القديم",
   "scanning": "جارٍ الفحص...",
+  "searchApps": "ابحث في التطبيقات",
   "sectionAbout": "حول التطبيق",
   "sectionAppearance": "المظهر",
   "sectionComputer": "الكمبيوتر",
@@ -586,6 +672,8 @@
   "sectionProgress": "التقدّم",
   "sectionThisPhone": "هذا الهاتف",
   "sectionTransfers": "النقل",
+  "selectAll": "تحديد الكل",
+  "selectNone": "إلغاء التحديد",
   "selfBatteryLowBody": "وصّل هذا الهاتف بالشاحن. التقدّم محفوظ، فيمكن استئناف النقل إن انطفأ.",
   "selfBatteryLowTitle": "البطارية منخفضة ({level}%)",
   "@selfBatteryLowTitle": {
@@ -620,6 +708,8 @@
       }
     }
   },
+  "sortName": "الاسم",
+  "sortSize": "الحجم",
   "startBackup": "بدء النسخ الاحتياطي",
   "startTransfer": "بدء النقل",
   "startupFailed": "تعذّر التشغيل: {error}",

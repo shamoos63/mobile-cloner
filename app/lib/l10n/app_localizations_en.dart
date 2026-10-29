@@ -54,6 +54,13 @@ class SEn extends S {
   String get allow => 'Allow';
 
   @override
+  String get allowInstallBody =>
+      'Android needs \"Install unknown apps\" turned on for HK Cloner. Turn it on, then come back here.';
+
+  @override
+  String get allowInstallTitle => 'Allow HK Cloner to install apps';
+
+  @override
   String allowPermissionToFind(String name) {
     return 'Allow \"$name\" to find the other phone';
   }
@@ -94,7 +101,74 @@ class SEn extends S {
   }
 
   @override
+  String get appStatusAlreadyInstalled =>
+      'Already installed (same or newer version)';
+
+  @override
+  String get appStatusCanceled => 'Canceled';
+
+  @override
+  String appStatusFailed(String reason) {
+    return 'Failed: $reason';
+  }
+
+  @override
+  String get appStatusIncomplete => 'Not fully received';
+
+  @override
+  String get appStatusInstalled => 'Installed';
+
+  @override
+  String get appStatusInstalling => 'Installing...';
+
+  @override
+  String appStatusNeedsAndroid(int level) {
+    return 'Needs a newer Android (API $level)';
+  }
+
+  @override
   String get appTitle => 'HK Cloner';
+
+  @override
+  String get appUnreadable => 'Android doesn\'t let HK Cloner read this app.';
+
+  @override
+  String appsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count apps',
+      one: '1 app',
+      zero: 'No apps',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String appsInstalledSummary(int installed, int total) {
+    return '$installed of $total apps installed.';
+  }
+
+  @override
+  String appsNotInstalled(String names) {
+    return 'Not installed: $names';
+  }
+
+  @override
+  String get appsOnlyNote =>
+      'Only the app is copied. App data and sign-ins stay on the old phone.';
+
+  @override
+  String appsSelected(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count apps · $size',
+      one: '1 app · $size',
+      zero: 'No apps selected',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get backUpNow => 'Back up now';
@@ -188,6 +262,9 @@ class SEn extends S {
   String get chooseApkDialogTitle => 'Choose the HK Cloner APK';
 
   @override
+  String get chooseApps => 'Choose apps';
+
+  @override
   String get chooseComputer => 'Choose a computer';
 
   @override
@@ -252,6 +329,9 @@ class SEn extends S {
   @override
   String get contactsImportHint =>
       'Your Contacts app opened with the file. Pick where to save them.';
+
+  @override
+  String get contactsNoApp => 'No Contacts app found to import contacts.vcf.';
 
   @override
   String get contactsReceived => 'Contacts received';
@@ -451,6 +531,19 @@ class SEn extends S {
   String get howConnected => 'How are the phones connected?';
 
   @override
+  String get install => 'Install';
+
+  @override
+  String get installAll => 'Install all';
+
+  @override
+  String get installApps => 'Install apps';
+
+  @override
+  String get installAppsHint =>
+      'Android asks you to confirm each app. Sign in again in apps that need it.';
+
+  @override
   String get installBlocked =>
       'The phone refused the install. Look at the phone: if it asks, tap Install (or \"Install anyway\"). On Xiaomi phones turn on Developer options > \"Install via USB\". Then try again.';
 
@@ -490,6 +583,11 @@ class SEn extends S {
   @override
   String get installUpdateIncompatible =>
       'A different copy of HK Cloner is on the phone (built on another computer or from another store). Android only replaces it after uninstalling it, which deletes HK Cloner\'s data on the phone: its settings and any unfinished transfer. Photos, contacts and other apps are not touched.';
+
+  @override
+  String installingAppOf(String name, int index, int total) {
+    return 'Installing $name ($index of $total)';
+  }
 
   @override
   String installingOn(String device) {
@@ -564,6 +662,9 @@ class SEn extends S {
   String get linked => 'Linked';
 
   @override
+  String get loadingApps => 'Loading apps...';
+
+  @override
   String get locationPermission => 'Location';
 
   @override
@@ -604,6 +705,9 @@ class SEn extends S {
   @override
   String get noAddressReachable =>
       'Could not reach the other device at any of its addresses.';
+
+  @override
+  String get noAppsFound => 'No apps found';
 
   @override
   String get noBackupsYet =>
@@ -808,6 +912,9 @@ class SEn extends S {
   String get scanning => 'Scanning...';
 
   @override
+  String get searchApps => 'Search apps';
+
+  @override
   String get sectionAbout => 'About';
 
   @override
@@ -847,6 +954,12 @@ class SEn extends S {
   String get sectionTransfers => 'Transfers';
 
   @override
+  String get selectAll => 'Select all';
+
+  @override
+  String get selectNone => 'Select none';
+
+  @override
   String get selfBatteryLowBody =>
       'Plug in this phone. Progress is saved, so the transfer can resume if it turns off.';
 
@@ -883,6 +996,12 @@ class SEn extends S {
   String sizeOfSize(String done, String total) {
     return '$done of $total';
   }
+
+  @override
+  String get sortName => 'Name';
+
+  @override
+  String get sortSize => 'Size';
 
   @override
   String get startBackup => 'Start backup';

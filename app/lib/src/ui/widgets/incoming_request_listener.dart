@@ -1,3 +1,4 @@
+import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n.dart';
@@ -55,7 +56,10 @@ class _IncomingRequestListenerState extends State<IncomingRequestListener> {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(categoryIcon(e.key)),
                 title: Text(categoryLabel(e.key)),
-                trailing: Text(ltr('${e.value}')),
+                // Apps: each app is several files (APKs, manifest, icon).
+                trailing: Text(ltr(e.key == ContentCategory.apps
+                    ? '${req.files.where((f) => f.category == ContentCategory.apps).map((f) => AppBundle.packageOf(f.cloner?.relPath ?? '')).nonNulls.toSet().length}'
+                    : '${e.value}')),
               ),
             if (req.files.any((f) => f.category.isWhatsApp))
               Padding(

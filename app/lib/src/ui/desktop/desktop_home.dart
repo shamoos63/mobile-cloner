@@ -225,12 +225,68 @@ class _DesktopHomeState extends State<DesktopHome> {
       final target = choice is Device
           ? choice
           : await service.connectManual('127.0.0.1', port: AdbBridge.pcToPhonePort);
-      final files = await BackupStore.filesToRestore(dir);
-      await service.send(target, files, options: {'backupDir': dir});
+      // Over USB the computer installs the apps itself (adb); over Wi-Fi the
+      // phone gets the APKs and shows its own "Install apps" list.
+      final serial = choice is String ? choice : null;
+      final files = await BackupStore.filesToRestore(
+        dir,
+        only: serial == null ? null : ({...ContentCategory.values}..remove(ContentCategory.apps)),
+      );
+      if (files.isNotEmpty) await service.send(target, files, options: {'backupDir': dir});
+      if (serial != null) await _installApps(serial, dir);
       _afterRestore();
     } catch (e) {
       _snack('$e');
     }
+  }
+
+  /// Installs the backup's apps on a USB-linked phone, one by one, skipping
+  /// those already there at the same or a newer version.
+  Future<void> _installApps(String serial, String dir) async {
+    final bundles = [
+      for (final b in await AppBundle.scan(p.join(dir, ContentCategory.apps.wireName)))
+        if (b.complete) b,
+    ];
+    if (bundles.isEmpty || !mounted) return;
+    final progress = ValueNotifier<(int, String)>((0, ''));
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.install_mobile_rounded),
+        title: Text(tr.installApps),
+        content: ValueListenableBuilder<(int, String)>(
+          valueListenable: progress,
+          builder: (context, v, _) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr.installingAppOf(v.$2, v.$1 + 1, bundles.length)),
+            const SizedBox(height: 14),
+            LinearProgressIndicator(value: v.$1 / bundles.length),
+          ]),
+        ),
+      ),
+    ));
+    var installed = 0;
+    final failed = <String>[];
+    for (final (i, b) in bundles.indexed) {
+      progress.value = (i, b.manifest.label);
+      try {
+        final have = await adb.installedVersion(serial, b.packageName);
+        if (have != null && have >= b.manifest.versionCode) {
+          installed++;
+          continue;
+        }
+        await adb.installApp(serial, b.apkPaths);
+        installed++;
+      } catch (e) {
+        failed.add(b.manifest.label);
+      }
+    }
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    progress.dispose();
+    _snack([
+      tr.appsInstalledSummary(installed, bundles.length),
+      if (failed.isNotEmpty) tr.appsNotInstalled(failed.join(', ')),
+    ].join(' '));
   }
 
   void _afterRestore() {
@@ -424,6 +480,7 @@ class _DesktopHomeState extends State<DesktopHome> {
   Future<void> _preview(String dir) async {
     final m = _backups.where((b) => b.$1 == dir).map((b) => b.$2).firstOrNull;
     if (m == null) return;
+    final apps = await AppBundle.scan(p.join(dir, ContentCategory.apps.wireName));
     final thumbs = <File>[];
     final photos = Directory(p.join(dir, ContentCategory.photos.wireName));
     if (await photos.exists()) {
@@ -470,6 +527,20 @@ class _DesktopHomeState extends State<DesktopHome> {
                           if (DateTime.tryParse('${(e.value as Map)['at']}') case final at?) _stamp(at.toLocal()),
                         ].join(' · ')),
                       ),
+                  if (apps.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(tr.categoryApps, style: t.titleSmall),
+                    for (final a in apps)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: a.iconPath == null
+                            ? const Icon(Icons.android_rounded)
+                            : Image.file(File(a.iconPath!), width: 32, height: 32),
+                        title: Text(a.manifest.label),
+                        subtitle: Text('${ltr(a.manifest.versionName)} · ${formatBytes(a.manifest.sizeBytes)}'),
+                      ),
+                  ],
                   if (thumbs.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(tr.categoryPhotos, style: t.titleSmall),

@@ -54,6 +54,13 @@ class SAr extends S {
   String get allow => 'سماح';
 
   @override
+  String get allowInstallBody =>
+      'يحتاج أندرويد إلى تفعيل \"تثبيت التطبيقات غير المعروفة\" لتطبيق HK Cloner. فعّله ثم عُد إلى هنا.';
+
+  @override
+  String get allowInstallTitle => 'اسمح لـ HK Cloner بتثبيت التطبيقات';
+
+  @override
   String allowPermissionToFind(String name) {
     return 'اسمح بإذن \"$name\" للعثور على الهاتف الآخر';
   }
@@ -94,7 +101,80 @@ class SAr extends S {
   }
 
   @override
+  String get appStatusAlreadyInstalled => 'مثبّت مسبقًا (الإصدار نفسه أو أحدث)';
+
+  @override
+  String get appStatusCanceled => 'أُلغي';
+
+  @override
+  String appStatusFailed(String reason) {
+    return 'فشل: $reason';
+  }
+
+  @override
+  String get appStatusIncomplete => 'لم يُستلم بالكامل';
+
+  @override
+  String get appStatusInstalled => 'مثبّت';
+
+  @override
+  String get appStatusInstalling => 'جارٍ التثبيت...';
+
+  @override
+  String appStatusNeedsAndroid(int level) {
+    return 'يحتاج إصدار أندرويد أحدث (API $level)';
+  }
+
+  @override
   String get appTitle => 'HK Cloner';
+
+  @override
+  String get appUnreadable =>
+      'لا يسمح أندرويد لـ HK Cloner بقراءة هذا التطبيق.';
+
+  @override
+  String appsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تطبيق',
+      many: '$count تطبيقًا',
+      few: '$count تطبيقات',
+      two: 'تطبيقان',
+      one: 'تطبيق واحد',
+      zero: 'لا تطبيقات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String appsInstalledSummary(int installed, int total) {
+    return 'تم تثبيت $installed من $total تطبيق.';
+  }
+
+  @override
+  String appsNotInstalled(String names) {
+    return 'لم يُثبَّت: $names';
+  }
+
+  @override
+  String get appsOnlyNote =>
+      'يُنسخ التطبيق فقط. تبقى بيانات التطبيق وتسجيلات الدخول على الهاتف القديم.';
+
+  @override
+  String appsSelected(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تطبيق · $size',
+      many: '$count تطبيقًا · $size',
+      few: '$count تطبيقات · $size',
+      two: 'تطبيقان · $size',
+      one: 'تطبيق واحد · $size',
+      zero: 'لم يُحدَّد أي تطبيق',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get backUpNow => 'انسخ الآن';
@@ -187,6 +267,9 @@ class SAr extends S {
   String get chooseApkDialogTitle => 'اختر ملف HK Cloner بصيغة APK';
 
   @override
+  String get chooseApps => 'اختر التطبيقات';
+
+  @override
   String get chooseComputer => 'اختر جهاز كمبيوتر';
 
   @override
@@ -254,6 +337,10 @@ class SAr extends S {
   @override
   String get contactsImportHint =>
       'فُتح تطبيق جهات الاتصال مع الملف. اختر مكان حفظها.';
+
+  @override
+  String get contactsNoApp =>
+      'لم يُعثر على تطبيق جهات اتصال لاستيراد contacts.vcf.';
 
   @override
   String get contactsReceived => 'تم استلام جهات الاتصال';
@@ -453,6 +540,19 @@ class SAr extends S {
   String get howConnected => 'كيف يتصل الهاتفان؟';
 
   @override
+  String get install => 'تثبيت';
+
+  @override
+  String get installAll => 'تثبيت الكل';
+
+  @override
+  String get installApps => 'تثبيت التطبيقات';
+
+  @override
+  String get installAppsHint =>
+      'يطلب منك أندرويد تأكيد كل تطبيق. سجّل الدخول من جديد في التطبيقات التي تحتاج ذلك.';
+
+  @override
   String get installBlocked =>
       'رفض الهاتف التثبيت. انظر إلى الهاتف: إن ظهر سؤال، اضغط تثبيت (أو \"التثبيت على أي حال\"). في هواتف Xiaomi فعّل خيارات المطوّر > \"التثبيت عبر USB\". ثم حاول مجددًا.';
 
@@ -491,6 +591,11 @@ class SAr extends S {
   @override
   String get installUpdateIncompatible =>
       'على الهاتف نسخة مختلفة من HK Cloner (من كمبيوتر آخر أو من متجر آخر). لا يستبدلها أندرويد إلا بعد إلغاء تثبيتها، وهذا يحذف بيانات HK Cloner على الهاتف: إعداداته وأي نقل غير مكتمل. لن تُمس الصور وجهات الاتصال والتطبيقات الأخرى.';
+
+  @override
+  String installingAppOf(String name, int index, int total) {
+    return 'جارٍ تثبيت $name ($index من $total)';
+  }
 
   @override
   String installingOn(String device) {
@@ -571,6 +676,9 @@ class SAr extends S {
   String get linked => 'متصل';
 
   @override
+  String get loadingApps => 'جارٍ تحميل التطبيقات...';
+
+  @override
   String get locationPermission => 'الموقع';
 
   @override
@@ -611,6 +719,9 @@ class SAr extends S {
   @override
   String get noAddressReachable =>
       'تعذّر الوصول إلى الجهاز الآخر على أيٍّ من عناوينه.';
+
+  @override
+  String get noAppsFound => 'لم يُعثر على تطبيقات';
 
   @override
   String get noBackupsYet =>
@@ -816,6 +927,9 @@ class SAr extends S {
   String get scanning => 'جارٍ الفحص...';
 
   @override
+  String get searchApps => 'ابحث في التطبيقات';
+
+  @override
   String get sectionAbout => 'حول التطبيق';
 
   @override
@@ -855,6 +969,12 @@ class SAr extends S {
   String get sectionTransfers => 'النقل';
 
   @override
+  String get selectAll => 'تحديد الكل';
+
+  @override
+  String get selectNone => 'إلغاء التحديد';
+
+  @override
   String get selfBatteryLowBody =>
       'وصّل هذا الهاتف بالشاحن. التقدّم محفوظ، فيمكن استئناف النقل إن انطفأ.';
 
@@ -891,6 +1011,12 @@ class SAr extends S {
   String sizeOfSize(String done, String total) {
     return '$done من $total';
   }
+
+  @override
+  String get sortName => 'الاسم';
+
+  @override
+  String get sortSize => 'الحجم';
 
   @override
   String get startBackup => 'بدء النسخ الاحتياطي';

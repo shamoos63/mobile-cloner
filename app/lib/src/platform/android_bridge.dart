@@ -36,6 +36,47 @@ class SafTree {
   String relative(String path) => basePath.isEmpty ? path : path.substring(basePath.length).replaceFirst(RegExp('^/'), '');
 }
 
+/// An app installed on this phone, as offered under "Apps".
+class InstalledApp {
+  const InstalledApp({
+    required this.packageName,
+    required this.label,
+    required this.versionName,
+    required this.versionCode,
+    required this.apks,
+    required this.sizeBytes,
+    required this.readable,
+    this.minSdk,
+  });
+
+  factory InstalledApp.fromMap(Map<Object?, Object?> m) => InstalledApp(
+    packageName: m['package'] as String,
+    label: m['label'] as String,
+    versionName: m['versionName'] as String? ?? '',
+    versionCode: (m['versionCode'] as num).toInt(),
+    apks: [for (final a in m['apks'] as List) '$a'],
+    sizeBytes: (m['size'] as num).toInt(),
+    readable: m['readable'] as bool? ?? false,
+    minSdk: (m['minSdk'] as num?)?.toInt(),
+  );
+
+  final String packageName;
+  final String label;
+  final String versionName;
+  final int versionCode;
+
+  /// Absolute APK paths: the base APK, then split APKs.
+  final List<String> apks;
+  final int sizeBytes;
+
+  /// False when Android won't let HK Cloner read the APK files.
+  final bool readable;
+  final int? minSdk;
+}
+
+/// Outcome of installing one app.
+enum AppInstallResult { installed, canceled, failed }
+
 class SafEntry {
   const SafEntry(this.rel, this.size, this.modified, this.uri);
   final String rel;
@@ -100,6 +141,30 @@ class AndroidBridge {
       (await _ch.invokeMethod<bool>('isPackageInstalled', {'package': pkg}))!;
   Future<bool> launchPackage(String pkg) async =>
       (await _ch.invokeMethod<bool>('launchPackage', {'package': pkg}))!;
+
+  // --- Apps ---
+
+  Future<List<InstalledApp>> listApps() async =>
+      [for (final m in await _ch.invokeListMethod<Map>('listApps') ?? const []) InstalledApp.fromMap(m)];
+
+  Future<Uint8List?> appIcon(String package, {int size = 96}) =>
+      _ch.invokeMethod<Uint8List>('appIcon', {'package': package, 'size': size});
+
+  Future<int?> installedAppVersion(String package) async =>
+      (await _ch.invokeMethod<num>('installedAppVersion', {'package': package}))?.toInt();
+
+  /// Android 8+: whether "Install unknown apps" is on for HK Cloner.
+  Future<bool> canInstallApps() async => await _ch.invokeMethod<bool>('canInstallApps') ?? false;
+  Future<void> openInstallSettings() => _ch.invokeMethod('openInstallSettings');
+
+  /// Installs one app (base APK first, then splits) and waits for Android's
+  /// answer, after the user confirmed or canceled. Failure text in [detail].
+  Future<({AppInstallResult result, String? detail})> installApp(List<String> apks) async {
+    final r = await _ch.invokeMethod<String>('installApp', {'apks': apks}) ?? 'failed:';
+    if (r == 'installed') return (result: AppInstallResult.installed, detail: null);
+    if (r == 'canceled') return (result: AppInstallResult.canceled, detail: null);
+    return (result: AppInstallResult.failed, detail: r.replaceFirst('failed:', ''));
+  }
 
   Future<void> openTetherSettings() => _ch.invokeMethod('openTetherSettings');
   Future<void> openWifiSettings() => _ch.invokeMethod('openWifiSettings');

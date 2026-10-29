@@ -5,6 +5,9 @@ import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_cloner/src/platform/android_bridge.dart';
+import 'package:mobile_cloner/src/services/app_installer.dart';
+import 'package:mobile_cloner/src/ui/phone/views/app_install_list.dart';
+import 'package:mobile_cloner/src/ui/phone/views/app_picker_view.dart';
 import 'package:mobile_cloner/src/ui/phone/views/home_view.dart';
 import 'package:mobile_cloner/src/ui/phone/views/receive_view.dart';
 import 'package:mobile_cloner/src/ui/phone/views/select_view.dart';
@@ -111,6 +114,52 @@ void main() {
       onOpenAppSettings: () {},
     ),
   };
+
+  screens['app picker'] = AppPickerView(
+    apps: [
+      for (final (i, name) in ['Telegram', 'A very long application name that keeps going', 'Maps'].indexed)
+        InstalledApp(
+          packageName: 'com.example.app$i',
+          label: name,
+          versionName: '11.140.0.1234567-release',
+          versionCode: 1,
+          apks: const ['/data/app/base.apk'],
+          sizeBytes: 98000000,
+          readable: i != 2,
+        ),
+    ],
+    initial: const {'com.example.app0'},
+    iconFor: (_) async => null,
+    onDone: (_) {},
+  );
+  screens['app install list'] = Scaffold(
+    body: ListView(padding: const EdgeInsets.all(20), children: [
+      AppInstallList(
+        queue: AppInstallQueue(
+          install: (_) async => (result: AppInstallResult.installed, detail: null),
+          installedVersion: (_) async => null,
+          sdkInt: 34,
+          bundles: [
+            for (final name in ['Telegram', 'A very long application name that keeps going'])
+              AppBundle(
+                dir: '/r',
+                manifest: AppManifest(
+                  packageName: name,
+                  label: name,
+                  versionName: '11.140.0',
+                  versionCode: 1,
+                  apks: const ['base.apk'],
+                  sizeBytes: 98000000,
+                  minSdk: 40,
+                ),
+                apkPaths: const ['/r/base.apk'],
+              ),
+          ],
+        ),
+        beforeInstall: () async => true,
+      ),
+    ]),
+  );
 
   for (final lang in ['ar', 'en']) {
     for (final e in screens.entries) {
