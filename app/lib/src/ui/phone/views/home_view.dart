@@ -35,6 +35,7 @@ class PhoneHomeView extends StatelessWidget {
     this.resume,
     this.onResume,
     this.onDiscardResume,
+    this.onSettings,
   });
 
   final String deviceName;
@@ -48,6 +49,7 @@ class PhoneHomeView extends StatelessWidget {
   final VoidCallback onRestore;
   final VoidCallback? onResume;
   final VoidCallback? onDiscardResume;
+  final VoidCallback? onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +65,7 @@ class PhoneHomeView extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text('HK Cloner', style: t.titleLarge),
                 const Spacer(),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.settings_outlined)),
+                IconButton(onPressed: onSettings, tooltip: 'Settings', icon: const Icon(Icons.settings_outlined)),
               ],
             ),
             const SizedBox(height: 16),

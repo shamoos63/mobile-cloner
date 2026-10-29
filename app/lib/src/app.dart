@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'services/app_settings.dart';
 import 'services/cloner_service.dart';
 import 'ui/desktop/desktop_home.dart';
 import 'ui/phone/phone_home.dart';
@@ -16,8 +17,16 @@ class MobileClonerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppSettings.instance,
+      builder: (context, _) => _app(AppSettings.instance.themeMode),
+    );
+  }
+
+  Widget _app(ThemeMode themeMode) {
     return MaterialApp(
       title: 'HK Cloner',
+      themeMode: themeMode,
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),

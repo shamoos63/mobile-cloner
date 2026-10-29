@@ -5,6 +5,7 @@ import '../../services/cloner_service.dart';
 import 'connect_page.dart';
 import 'receive_page.dart';
 import 'select_page.dart';
+import 'settings_page.dart';
 import 'transfer_page.dart';
 import 'views/home_view.dart';
 
@@ -44,7 +45,7 @@ class _PhoneHomeState extends State<PhoneHome> {
         final a = service.android!;
         final cp = service.checkpoint;
         return PhoneHomeView(
-          deviceName: a.model,
+          deviceName: service.self.alias,
           osLabel: 'Android ${a.release}',
           myStatus: service.localStatus,
           resume: cp == null
@@ -69,6 +70,7 @@ class _PhoneHomeState extends State<PhoneHome> {
           onRestore: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReceivePage())),
           onResume: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferPage(resumeOnOpen: true))),
           onDiscardResume: service.discardCheckpoint,
+          onSettings: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())),
         );
       },
     );

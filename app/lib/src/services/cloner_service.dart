@@ -12,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../platform/android_bridge.dart';
 import '../restore/phone_receive_delegate.dart';
 import '../restore/receive_journal.dart';
+import '../version.dart';
+import 'app_settings.dart';
 import 'format.dart';
 
 /// A request from a sender waiting for the user to tap Accept.
@@ -92,6 +94,7 @@ class ClonerService extends ChangeNotifier {
       dataDir = support.path;
       checkpointStore = CheckpointStore(p.join(dataDir, 'transfer_checkpoint.json'));
       identity = await _loadIdentity();
+      await AppSettings.instance.load();
       if (isAndroid) android = await bridge.deviceInfo();
       self = _buildSelf();
       client = ClonerClient(self: self);
@@ -134,7 +137,7 @@ class ClonerService extends ChangeNotifier {
     final a = android;
     final platform = isAndroid ? ClonerPlatform.android : ClonerPlatform.parse(Platform.operatingSystem);
     return DeviceInfo(
-      alias: a != null ? '${_titleCase(a.manufacturer)} ${a.model}' : Platform.localHostname,
+      alias: AppSettings.instance.deviceName ?? defaultDeviceName,
       fingerprint: identity.fingerprint,
       deviceModel: a?.model ?? Platform.operatingSystem,
       deviceType: isAndroid ? DeviceType.mobile : DeviceType.desktop,
@@ -142,10 +145,26 @@ class ClonerService extends ChangeNotifier {
         platform: platform,
         sdkInt: a?.sdkInt,
         osVersion: a?.release ?? Platform.operatingSystemVersion,
-        appVersion: '0.1.0',
+        appVersion: appVersionName,
         capabilities: isAndroid ? const {'media', 'contacts', 'whatsapp', 'files'} : const {'backup'},
       ),
     );
+  }
+
+  /// The phone's own name ("Samsung SM-A536E"), used unless renamed.
+  String get defaultDeviceName {
+    final a = android;
+    return a != null ? '${_titleCase(a.manufacturer)} ${a.model}' : Platform.localHostname;
+  }
+
+  /// Renames this device for everyone who finds it from now on.
+  Future<void> rename(String? name) async {
+    await AppSettings.instance.setDeviceName(name);
+    self = _buildSelf();
+    server.info = self;
+    client.self = self;
+    discovery.announce();
+    notifyListeners();
   }
 
   Future<ReceiveDelegate> _buildDelegate() async {
@@ -280,7 +299,7 @@ class ClonerService extends ChangeNotifier {
   void _foreground(String title, String text, int pct) {
     if (!isAndroid) return;
     unawaited(bridge.serviceUpdate(title: title, text: text, progress: pct));
-    unawaited(bridge.keepScreenOn(true));
+    unawaited(bridge.keepScreenOn(AppSettings.instance.keepScreenOn));
   }
 
   void _stopForeground() {
