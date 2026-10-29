@@ -5,6 +5,7 @@ import '../../platform/android_bridge.dart';
 import '../../restore/phone_receive_delegate.dart';
 import '../../services/cloner_service.dart';
 import '../theme.dart';
+import '../widgets/discovery_access.dart';
 import '../widgets/visuals.dart';
 import 'views/receive_view.dart';
 import 'views/transfer_view.dart';
@@ -21,20 +22,35 @@ class _ReceivePageState extends State<ReceivePage> {
   ConnectionMode _mode = ConnectionMode.wifi;
   PairingCode? _pairing;
   String? _hint;
+
+  /// Cable mode found no cable network: offer the hotspot instead.
+  bool _suggestHotspot = false;
   bool _needsWhatsApp = false;
 
   @override
   void initState() {
     super.initState();
+    service.startLooking();
     _refreshPairing();
     _checkWhatsAppAccess();
-    service.bridge.requestPermissions(
-        [...AndroidPermission.media(service.android!.sdkInt), AndroidPermission.writeContacts, AndroidPermission.notifications]);
+    _askPermissions();
+  }
+
+  /// One after the other: Android shows one permission dialog at a time.
+  Future<void> _askPermissions() async {
+    if (await service.ensureDiscoveryAccess()) service.refresh();
+    try {
+      await service.bridge.requestPermissions(
+          [...AndroidPermission.media(service.android!.sdkInt), AndroidPermission.writeContacts, AndroidPermission.notifications]);
+    } catch (e) {
+      debugPrint('Permission request failed: $e');
+    }
   }
 
   @override
   void dispose() {
     if (_mode == ConnectionMode.hotspot) service.bridge.stopLocalHotspot();
+    service.stopLooking();
     super.dispose();
   }
 
@@ -64,10 +80,13 @@ class _ReceivePageState extends State<ReceivePage> {
     setState(() {
       _mode = mode;
       _hint = null;
+      _suggestHotspot = false;
     });
+    if (mode != ConnectionMode.adb) await service.ensureDiscoveryAccess();
     switch (mode) {
       case ConnectionMode.wifi:
         await _refreshPairing();
+        service.refresh();
       case ConnectionMode.hotspot:
         await service.bridge.requestPermissions(AndroidPermission.hotspot(service.android!.sdkInt));
         try {
@@ -84,15 +103,41 @@ class _ReceivePageState extends State<ReceivePage> {
           setState(() => _hint = 'Could not start the hotspot ($e). Use the Settings hotspot instead.');
         }
       case ConnectionMode.usbTethering:
-        setState(() => _hint =
-            'Connect the phones with a cable, then turn on "USB tethering" on one of them (opening Settings now). The code updates when the cable link is up.');
-        await service.bridge.openTetherSettings();
-        for (var i = 0; i < 20 && mounted && _mode == ConnectionMode.usbTethering; i++) {
-          await Future<void>.delayed(const Duration(seconds: 3));
-          await _refreshPairing();
-        }
+        await _cableMode();
       case ConnectionMode.adb:
         break;
+    }
+  }
+
+  /// Two phones on one cable only share a network when the phone in USB
+  /// device role (the one being charged) turns on USB tethering AND the other
+  /// phone can use a USB network adapter, which many phones can't. Watch for
+  /// the cable link and say plainly when it doesn't come up.
+  Future<void> _cableMode() async {
+    setState(() => _hint = 'Connect the phones with a cable. Then turn on "USB tethering" on the phone being charged '
+        'by the other one (opening Settings now). On the other phone that switch is greyed out. To swap, tap the USB '
+        'notification and change who controls USB.');
+    await service.bridge.openTetherSettings();
+    for (var i = 0; i < 20 && mounted && _mode == ConnectionMode.usbTethering; i++) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      if (!mounted || _mode != ConnectionMode.usbTethering) return;
+      final cable = (await LocalLink.list()).where((l) => l.kind.cable).toList();
+      await _refreshPairing();
+      service.refresh(scan: cable.isNotEmpty);
+      if (cable.isNotEmpty) {
+        setState(() {
+          _suggestHotspot = false;
+          _hint = 'Cable link is up on this phone (${cable.first.address}). Scan the code from the old phone. '
+              'If it still finds nothing, the other phone cannot use a cable network: use "No Wi-Fi around".';
+        });
+      } else if (i == 9) {
+        setState(() {
+          _suggestHotspot = true;
+          _hint = 'No cable network yet. Turn on USB tethering on this phone, or on the old phone if this one is '
+              'being charged. Many phones cannot share a network with another phone over a cable. If yours can\'t, '
+              '"No Wi-Fi around" works without a router.';
+        });
+      }
     }
   }
 
@@ -129,6 +174,9 @@ class _ReceivePageState extends State<ReceivePage> {
           mode: _mode,
           onMode: _setMode,
           modeHint: _hint,
+          notice: const DiscoveryAccessCard(),
+          modeActionLabel: _suggestHotspot ? 'Use "No Wi-Fi around"' : null,
+          onModeAction: _suggestHotspot ? () => _setMode(ConnectionMode.hotspot) : null,
           needsWhatsAppAccess: _needsWhatsApp,
           onGrantWhatsApp: _grantWhatsApp,
         );

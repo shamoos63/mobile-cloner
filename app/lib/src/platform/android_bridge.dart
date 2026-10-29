@@ -76,9 +76,22 @@ class AndroidBridge {
 
   Future<int> freeBytes() async => (await _ch.invokeMethod<int>('freeBytes'))!;
 
-  /// Requests runtime permissions; returns name -> granted.
+  /// Requests runtime permissions; returns name -> granted. Requests made
+  /// while Android's dialog is open wait for it.
   Future<Map<String, bool>> requestPermissions(List<String> names) async =>
       (await _ch.invokeMapMethod<String, bool>('requestPermissions', {'permissions': names}))!;
+
+  /// Current state of each permission, without asking.
+  Future<Map<String, PermissionState>> permissionState(List<String> names) async {
+    final m = (await _ch.invokeMapMethod<String, String>('permissionState', {'permissions': names}))!;
+    return m.map((k, v) => MapEntry(k, PermissionState.values.byName(v)));
+  }
+
+  /// HK Cloner's page in Settings, where blocked permissions are granted.
+  Future<void> openAppSettings() => _ch.invokeMethod('openAppSettings');
+
+  /// Holds Wi-Fi's multicast lock so discovery announcements get through.
+  Future<void> multicastLock(bool on) => _ch.invokeMethod('multicastLock', {'on': on});
 
   Future<bool> hasAllFilesAccess() async => (await _ch.invokeMethod<bool>('hasAllFilesAccess'))!;
   Future<void> requestAllFilesAccess() => _ch.invokeMethod('requestAllFilesAccess');
@@ -190,6 +203,16 @@ class AndroidBridge {
   Future<void> commit(SafTree tree, String rel) => _ch.invokeMethod('safCommit', {'tree': tree.uri, 'rel': rel});
 }
 
+enum PermissionState {
+  granted,
+
+  /// Not granted; asking shows Android's dialog.
+  denied,
+
+  /// Denied for good; only the app's settings page can grant it.
+  blocked,
+}
+
 /// Android permission names used by the app.
 abstract final class AndroidPermission {
   static const readExternal = 'android.permission.READ_EXTERNAL_STORAGE';
@@ -208,4 +231,9 @@ abstract final class AndroidPermission {
       : [readExternal, if (sdkInt <= 29) writeExternal];
 
   static List<String> hotspot(int sdkInt) => [fineLocation, if (sdkInt >= 33) nearbyWifi];
+
+  /// Finding nearby devices on Wi-Fi, a hotspot or a USB cable: "Nearby
+  /// devices" on Android 13+ (declared neverForLocation), "Location" before
+  /// that, which is how older Android gates Wi-Fi network details.
+  static List<String> discovery(int sdkInt) => sdkInt >= 33 ? [nearbyWifi] : [fineLocation];
 }

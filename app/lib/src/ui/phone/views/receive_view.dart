@@ -16,6 +16,9 @@ class ReceiveView extends StatelessWidget {
     this.needsWhatsAppAccess = false,
     this.onGrantWhatsApp,
     this.modeHint,
+    this.notice,
+    this.modeActionLabel,
+    this.onModeAction,
   });
 
   final String deviceName;
@@ -25,6 +28,13 @@ class ReceiveView extends StatelessWidget {
   final bool needsWhatsAppAccess;
   final VoidCallback? onGrantWhatsApp;
   final String? modeHint;
+
+  /// Shown above the connection modes (the permission card).
+  final Widget? notice;
+
+  /// A button under [modeHint], e.g. switching to the hotspot.
+  final String? modeActionLabel;
+  final VoidCallback? onModeAction;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +94,7 @@ class ReceiveView extends StatelessWidget {
                 ),
               ),
             ],
+            ?notice,
             const SectionLabel('How are the phones connected?'),
             _ModeTile(
               mode: ConnectionMode.wifi,
@@ -113,6 +124,18 @@ class ReceiveView extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
                 child: Text(modeHint!, style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ),
+            if (modeActionLabel != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonal(
+                    style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                    onPressed: onModeAction,
+                    child: Text(modeActionLabel!),
+                  ),
+                ),
               ),
           ],
         ),

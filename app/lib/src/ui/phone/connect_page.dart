@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/cloner_service.dart';
 import '../theme.dart';
+import '../widgets/discovery_access.dart';
 import '../widgets/labels.dart';
 import '../widgets/visuals.dart';
 import 'scan_page.dart';
@@ -24,11 +27,30 @@ class _ConnectPageState extends State<ConnectPage> {
   final service = ClonerService.instance;
   bool _busy = false;
   String? _error;
+  Timer? _rescan;
 
   @override
   void initState() {
     super.initState();
+    service.startLooking();
+    _start();
+    // A cable or hotspot link can come up after this screen opens: keep
+    // scanning while nothing has been found.
+    _rescan = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (service.peers.isEmpty && !_busy) service.refresh(scan: true);
+    });
+  }
+
+  Future<void> _start() async {
+    await service.ensureDiscoveryAccess();
     service.refresh(scan: true);
+  }
+
+  @override
+  void dispose() {
+    _rescan?.cancel();
+    service.stopLooking();
+    super.dispose();
   }
 
   Future<void> _pick(Future<Device> Function() connect) async {
@@ -102,6 +124,7 @@ class _ConnectPageState extends State<ConnectPage> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
+              const DiscoveryAccessCard(),
               const SectionLabel('Nearby'),
               if (peers.isEmpty)
                 Card(
@@ -159,6 +182,23 @@ class _ConnectPageState extends State<ConnectPage> {
                   ),
                 ]),
               ),
+              if (peers.isEmpty && !widget.desktopOnly) ...[
+                const SectionLabel('Not finding it?'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Text(
+                      'Same Wi-Fi: both phones must be on the same network, and some routers (guest networks) '
+                      'keep devices apart.\n\n'
+                      'USB cable: only the phone being charged by the other can turn on USB tethering, and the '
+                      'other phone must support a USB network, which many phones do not. If nothing shows up '
+                      'within a minute, unplug the cable and choose "No Wi-Fi around" on the new phone. It needs '
+                      'no router and is almost as fast.',
+                      style: t.bodyMedium,
+                    ),
+                  ),
+                ),
+              ],
             ],
           );
         },

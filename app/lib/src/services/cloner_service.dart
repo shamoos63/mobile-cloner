@@ -291,9 +291,58 @@ class ClonerService extends ChangeNotifier {
 
   // --- Connecting ------------------------------------------------------------
 
+  /// Whether this phone may look for nearby devices. Android 13+ asks for
+  /// "Nearby devices", older versions for "Location"; without it Wi-Fi and
+  /// cable discovery quietly find nothing on some phones (Samsung).
+  PermissionState discoveryAccess = PermissionState.granted;
+
+  /// The one permission step every way of connecting runs first: on the
+  /// home screen, before sending, before receiving and on every mode
+  /// switch. Asks when Android still can; with [ask] false only re-reads
+  /// the state (back from Settings).
+  Future<bool> ensureDiscoveryAccess({bool ask = true}) async {
+    if (!isAndroid) return true;
+    final names = AndroidPermission.discovery(android!.sdkInt);
+    try {
+      var states = await bridge.permissionState(names);
+      if (ask && states.values.any((s) => s == PermissionState.denied)) {
+        await bridge.requestPermissions(names);
+        states = await bridge.permissionState(names);
+      }
+      final next = states.values.contains(PermissionState.blocked)
+          ? PermissionState.blocked
+          : states.values.contains(PermissionState.denied)
+          ? PermissionState.denied
+          : PermissionState.granted;
+      if (next != discoveryAccess) {
+        discoveryAccess = next;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Discovery permission check failed: $e');
+    }
+    return discoveryAccess == PermissionState.granted;
+  }
+
+  int _looking = 0;
+
+  /// A screen starts looking for devices: holds the Wi-Fi multicast lock
+  /// (Android drops discovery packets without it) until [stopLooking].
+  void startLooking() {
+    if (_looking++ == 0 && isAndroid) unawaited(bridge.multicastLock(true).catchError((Object _) {}));
+  }
+
+  void stopLooking() {
+    if (_looking == 0) return;
+    if (--_looking == 0 && isAndroid) unawaited(bridge.multicastLock(false).catchError((Object _) {}));
+  }
+
   void refresh({bool scan = false}) {
-    discovery.announce();
-    if (scan) unawaited(discovery.scanSubnets());
+    unawaited(() async {
+      await discovery.joinNewInterfaces();
+      discovery.announce();
+      if (scan) await discovery.scanSubnets();
+    }());
   }
 
   /// Connects from a scanned pairing QR code. Tries every address in it.
@@ -327,12 +376,9 @@ class ClonerService extends ChangeNotifier {
 
   /// Pairing code for this device (shown as QR on the receiver).
   Future<PairingCode> pairingCode({String? ssid, String? password}) async {
-    final addresses = <String>[];
-    for (final iface in await NetworkInterface.list(type: InternetAddressType.IPv4)) {
-      for (final a in iface.addresses) {
-        if (!a.isLoopback && !a.isLinkLocal) addresses.add(a.address);
-      }
-    }
+    // No mobile data or VPN addresses: they never reach a nearby device and
+    // each one costs the scanner a 4 s timeout.
+    final addresses = [for (final l in await LocalLink.list()) l.address];
     // Hotspot / tethering gateways first: they're the likely link in those modes.
     addresses.sort((a, b) => (_isGateway(b) ? 1 : 0) - (_isGateway(a) ? 1 : 0));
     return PairingCode(

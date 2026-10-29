@@ -53,6 +53,12 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
     private val main = Handler(Looper.getMainLooper())
     private val pending = HashMap<Int, MethodChannel.Result>()
     private var permissionNames: List<String> = emptyList()
+
+    // Requests that arrive while Android's dialog is up wait their turn
+    // instead of failing, so no screen's request is silently dropped.
+    private val queuedPermissions = ArrayDeque<Pair<List<String>, MethodChannel.Result>>()
+    private val prefs = context.getSharedPreferences("permissions", Context.MODE_PRIVATE)
+    private var multicastLock: WifiManager.MulticastLock? = null
     private var hotspotReservation: WifiManager.LocalOnlyHotspotReservation? = null
     private var joinedNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
@@ -76,6 +82,20 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                 "battery" -> result.success(battery())
                 "freeBytes" -> result.success(StatFs(Environment.getExternalStorageDirectory().path).availableBytes)
                 "requestPermissions" -> requestPermissions(call.argument<List<String>>("permissions") ?: emptyList(), result)
+                "permissionState" -> result.success(
+                    (call.argument<List<String>>("permissions") ?: emptyList()).associateWith { permissionState(it) },
+                )
+                "openAppSettings" -> {
+                    startSafely(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")),
+                        Intent(Settings.ACTION_SETTINGS),
+                    )
+                    result.success(null)
+                }
+                "multicastLock" -> {
+                    setMulticastLock(call.argument<Boolean>("on") == true)
+                    result.success(null)
+                }
                 "hasAllFilesAccess" -> result.success(hasAllFilesAccess())
                 "requestAllFilesAccess" -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -241,12 +261,24 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
             return
         }
         if (pending.containsKey(REQ_PERMISSIONS)) {
-            result.error("busy", "Permission request already running", null)
+            queuedPermissions.addLast(names to result)
             return
         }
         pending[REQ_PERMISSIONS] = result
         permissionNames = names
+        prefs.edit().apply { needed.forEach { putBoolean(it, true) } }.apply()
         activity.requestPermissions(needed.toTypedArray(), REQ_PERMISSIONS)
+    }
+
+    /**
+     * `granted`, `denied` (asking again shows Android's dialog) or `blocked`
+     * (denied for good: Android no longer shows the dialog, only the app's
+     * settings page can grant it).
+     */
+    private fun permissionState(name: String): String = when {
+        ContextCompat.checkSelfPermission(context, name) == PackageManager.PERMISSION_GRANTED -> "granted"
+        prefs.getBoolean(name, false) && !activity.shouldShowRequestPermissionRationale(name) -> "blocked"
+        else -> "denied"
     }
 
     fun onRequestPermissionsResult(requestCode: Int, @Suppress("UNUSED_PARAMETER") grantResults: IntArray) {
@@ -257,6 +289,23 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
                 ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
             },
         )
+        queuedPermissions.removeFirstOrNull()?.let { (names, next) -> requestPermissions(names, next) }
+    }
+
+    // --- Discovery ---------------------------------------------------------
+
+    /**
+     * Android drops incoming multicast to save battery unless an app holds
+     * this lock (Samsung strictly so). Held while a screen looks for devices.
+     */
+    private fun setMulticastLock(on: Boolean) {
+        val wifi = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val lock = multicastLock ?: wifi.createMulticastLock("hk-cloner-discovery").apply {
+            setReferenceCounted(false)
+            multicastLock = this
+        }
+        if (on && !lock.isHeld) lock.acquire()
+        if (!on && lock.isHeld) lock.release()
     }
 
     // --- SAF ---------------------------------------------------------------
@@ -417,6 +466,7 @@ class AndroidBridge(private val activity: Activity) : MethodChannel.MethodCallHa
     }
 
     fun dispose() {
+        multicastLock?.let { if (it.isHeld) it.release() }
         saf.dispose()
         hotspotReservation?.close()
         io.shutdown()
