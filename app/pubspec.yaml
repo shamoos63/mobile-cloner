@@ -10,6 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  # Pinned by flutter_localizations in Flutter 3.32.8.
+  intl: 0.20.2
 
   cloner_core:
     path: ../packages/cloner_core
@@ -32,6 +36,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/logo.png
@@ -47,4 +52,14 @@ flutter:
         - asset: assets/fonts/Manrope-Bold.ttf
           weight: 700
         - asset: assets/fonts/Manrope-ExtraBold.ttf
+          weight: 800
+    # Arabic UI font (SIL OFL 1.1, assets/fonts/Tajawal-OFL.txt).
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Regular.ttf
+        - asset: assets/fonts/Tajawal-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Tajawal-ExtraBold.ttf
           weight: 800

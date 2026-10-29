@@ -4,6 +4,7 @@ import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n.dart';
 import '../../services/format.dart';
 
 /// "HK Cloner isn't on (phone)": installs the bundled (or a chosen) APK over
@@ -91,49 +92,44 @@ class _InstallAppDialogState extends State<InstallAppDialog> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final title = widget.app.missing
-        ? "HK Cloner isn't on ${widget.deviceName}"
-        : 'HK Cloner on ${widget.deviceName} is out of date';
+    final s = S.of(context);
+    final title = widget.app.missing ? s.appMissingOn(widget.deviceName) : s.appOutdatedOn(widget.deviceName);
     return AlertDialog(
       icon: const Icon(Icons.install_mobile_rounded),
       title: Text(title),
       content: SizedBox(
         width: 460,
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          ..._body(t, muted),
+          ..._body(s, t, muted),
         ]),
       ),
-      actions: _actions(context),
+      actions: _actions(context, s),
     );
   }
 
-  List<Widget> _body(TextTheme t, Color muted) {
+  List<Widget> _body(S s, TextTheme t, Color muted) {
     switch (_phase) {
       case _Phase.installing:
         return [
-          Text('Installing on ${widget.deviceName}. This takes up to a minute.', style: t.bodyMedium),
+          Text(s.installingOn(widget.deviceName), style: t.bodyMedium),
           const SizedBox(height: 16),
           const LinearProgressIndicator(),
           const SizedBox(height: 12),
-          Text('If the phone asks whether to install, tap Install.', style: t.bodySmall?.copyWith(color: muted)),
+          Text(s.installTapInstall, style: t.bodySmall?.copyWith(color: muted)),
         ];
       case _Phase.failed:
-        return [Text(_failureText(_failure!), style: t.bodyMedium)];
+        return [Text(_failureText(s, _failure!), style: t.bodyMedium)];
       case _Phase.ready:
         if (_apk == null) {
           return [
-            Text(
-              'No phone app was found in this copy of HK Cloner. Choose the HK Cloner APK '
-              '(${PhoneApk.fileName}) to install it on the phone.',
-              style: t.bodyMedium,
-            ),
+            Text(s.noBundledApk(ltr(PhoneApk.fileName)), style: t.bodyMedium),
           ];
         }
         return [
           Text(
             widget.app.missing
-                ? 'This computer installs HK Cloner on the phone over the cable, then opens it.'
-                : 'The phone has version ${widget.app.installedVersion}. Updating keeps its data.',
+                ? s.installExplain
+                : s.updateExplain(ltr('${widget.app.installedVersion}')),
             style: t.bodyMedium,
           ),
           const SizedBox(height: 14),
@@ -142,7 +138,7 @@ class _InstallAppDialogState extends State<InstallAppDialog> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                _chosen ? '${p.basename(_apk!)} · $_size' : 'HK Cloner ${widget.bundledVersion} · $_size',
+                _chosen ? '${ltr(p.basename(_apk!))} · $_size' : s.apkSummary(ltr(widget.bundledVersion), _size),
                 style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
@@ -151,28 +147,19 @@ class _InstallAppDialogState extends State<InstallAppDialog> {
     }
   }
 
-  String _failureText(AdbInstallException e) => switch (e.failure) {
-    InstallFailure.updateIncompatible =>
-      'A different copy of HK Cloner is on the phone (built on another computer or from another store). Android '
-          'only replaces it after uninstalling it, which deletes HK Cloner\'s data on the phone: its settings and any '
-          'unfinished transfer. Photos, contacts and other apps are not touched.',
-    InstallFailure.downgrade =>
-      'The phone has a newer HK Cloner than this one. Installing this version means uninstalling the newer one '
-          'first, which deletes HK Cloner\'s data on the phone. Photos, contacts and other apps are not touched.',
-    InstallFailure.blocked =>
-      'The phone refused the install. Look at the phone: if it asks, tap Install (or "Install anyway"). On Xiaomi '
-          'phones turn on Developer options > "Install via USB". Then try again.',
-    InstallFailure.notAuthorized =>
-      'The phone does not trust this computer yet. Unlock it and tap Allow on "Allow USB debugging?" '
-          '(tick "Always allow from this computer"), then try again.',
-    InstallFailure.noSpace => 'Not enough free space on the phone. Free up at least $_size and try again.',
-    InstallFailure.invalidApk => "That file isn't a working HK Cloner APK. Choose another one.",
-    InstallFailure.other => 'The install failed: ${e.detail}',
+  String _failureText(S s, AdbInstallException e) => switch (e.failure) {
+    InstallFailure.updateIncompatible => s.installUpdateIncompatible,
+    InstallFailure.downgrade => s.installDowngrade,
+    InstallFailure.blocked => s.installBlocked,
+    InstallFailure.notAuthorized => s.installNotAuthorized,
+    InstallFailure.noSpace => s.installNoSpace(_size),
+    InstallFailure.invalidApk => s.installInvalidApk,
+    InstallFailure.other => s.installFailed(e.detail),
   };
 
-  List<Widget> _actions(BuildContext context) {
-    final cancel = TextButton(onPressed: () => Navigator.pop(context), child: const Text('Not now'));
-    final choose = TextButton(onPressed: _choose, child: const Text('Choose APK...'));
+  List<Widget> _actions(BuildContext context, S s) {
+    final cancel = TextButton(onPressed: () => Navigator.pop(context), child: Text(s.notNow));
+    final choose = TextButton(onPressed: _choose, child: Text(s.chooseApk));
     switch (_phase) {
       case _Phase.installing:
         return const [];
@@ -184,23 +171,23 @@ class _InstallAppDialogState extends State<InstallAppDialog> {
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
               onPressed: () => _install(uninstallFirst: true),
-              child: const Text('Uninstall and install'),
+              child: Text(s.uninstallAndInstall),
             ),
           ];
         }
         return [
           cancel,
           choose,
-          if (f != InstallFailure.invalidApk) FilledButton(onPressed: _install, child: const Text('Try again')),
+          if (f != InstallFailure.invalidApk) FilledButton(onPressed: _install, child: Text(s.tryAgain)),
         ];
       case _Phase.ready:
-        if (_apk == null) return [cancel, FilledButton(onPressed: _choose, child: const Text('Choose APK...'))];
+        if (_apk == null) return [cancel, FilledButton(onPressed: _choose, child: Text(s.chooseApk))];
         return [
           cancel,
           choose,
           FilledButton(
             onPressed: _install,
-            child: Text(widget.app.missing ? 'Install on phone' : 'Update on phone'),
+            child: Text(widget.app.missing ? s.installOnPhone : s.updateOnPhone),
           ),
         ];
     }

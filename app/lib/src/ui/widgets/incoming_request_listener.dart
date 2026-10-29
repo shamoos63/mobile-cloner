@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../services/cloner_service.dart';
 import '../../services/format.dart';
 import 'labels.dart';
@@ -41,12 +42,12 @@ class _IncomingRequestListenerState extends State<IncomingRequestListener> {
       context: ctx,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('${req.sender.info.alias} wants to send'),
+        title: Text(S.of(context).wantsToSend(req.sender.info.alias)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${req.files.length} items · ${formatBytes(req.totalBytes)}'),
+            Text('${S.of(context).itemsCount(req.files.length)} · ${formatBytes(req.totalBytes)}'),
             const SizedBox(height: 12),
             for (final e in req.countByCategory.entries)
               ListTile(
@@ -54,28 +55,28 @@ class _IncomingRequestListenerState extends State<IncomingRequestListener> {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(categoryIcon(e.key)),
                 title: Text(categoryLabel(e.key)),
-                trailing: Text('${e.value}'),
+                trailing: Text(ltr('${e.value}')),
               ),
             if (req.files.any((f) => f.category.isWhatsApp))
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(service.isAndroid
-                    ? 'WhatsApp files go to the folder WhatsApp uses on this Android version.'
-                    : 'Everything is stored in this device\'s backup folder.'),
+                    ? S.of(context).whatsappGoesToFolder
+                    : S.of(context).storedInBackupFolder),
               ),
             if (!req.sender.info.isCloner)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(service.isAndroid ? 'Sent from LocalSend. Files go to Downloads.' : 'Sent from LocalSend.'),
+                child: Text(service.isAndroid ? S.of(context).sentFromLocalSendDownloads : S.of(context).sentFromLocalSend),
               ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Decline')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(S.of(context).decline)),
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Accept'),
+            child: Text(S.of(context).accept),
           ),
         ],
       ),

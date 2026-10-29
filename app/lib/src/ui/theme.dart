@@ -24,7 +24,9 @@ abstract final class AppColors {
   static const ringGradient = SweepGradient(colors: [indigo, violet, teal, indigo]);
 }
 
-ThemeData buildTheme(Brightness brightness) {
+/// [arabic] uses Tajawal (Manrope has no Arabic letters); each font falls
+/// back to the other, so Arabic names show in English and Latin in Arabic.
+ThemeData buildTheme(Brightness brightness, {bool arabic = false}) {
   final dark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(
     seedColor: AppColors.indigo,
@@ -36,7 +38,12 @@ ThemeData buildTheme(Brightness brightness) {
     secondaryContainer: dark ? const Color(0xFF312E81) : const Color(0xFFE0E7FF),
     onSecondaryContainer: dark ? Colors.white : const Color(0xFF312E81),
   );
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: 'Manrope');
+  final base = ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    fontFamily: arabic ? 'Tajawal' : 'Manrope',
+    fontFamilyFallback: arabic ? const ['Manrope'] : const ['Tajawal'],
+  );
   final text = base.textTheme.copyWith(
     displayMedium: base.textTheme.displayMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1.5),
     headlineMedium: base.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.8),

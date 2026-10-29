@@ -1,3 +1,4 @@
+import '../../l10n.dart';
 import '../../platform/usb_link.dart';
 
 /// What to tell the user about the phone-to-phone cable. [waitedLong] is
@@ -5,37 +6,34 @@ import '../../platform/usb_link.dart';
 ({String text, bool suggestHotspot}) usbCableMessage(UsbLinkState state, {String? detail, bool waitedLong = false}) =>
     switch (state) {
       UsbLinkState.connected => (
-        text: 'Connected by cable. On the old phone, tap Send: this phone is at the top of the list.',
+        text: tr.usbConnected,
         suggestHotspot: false,
       ),
-      UsbLinkState.permission => (text: 'Tap Allow on this phone so HK Cloner can use the cable.', suggestHotspot: false),
+      UsbLinkState.permission => (text: tr.usbPermission, suggestHotspot: false),
       UsbLinkState.switching => (
-        text: 'Almost there. On the other phone, tap OK to open HK Cloner, then Allow.',
+        text: tr.usbSwitching,
         suggestHotspot: false,
       ),
       UsbLinkState.denied => (
-        text: 'USB access was not allowed. Unplug the cable, plug it back in and tap Allow.',
+        text: tr.usbDenied,
         suggestHotspot: false,
       ),
       UsbLinkState.unsupported => (
-        text: '${detail ?? 'The device on the cable cannot do phone-to-phone transfers'}. '
-            '"No Wi-Fi around" works without a cable or a router.',
+        // The platform's detail is English; the message is in the app's language.
+        text: tr.usbUnsupported,
         suggestHotspot: true,
       ),
       UsbLinkState.detached => (
-        text: 'The cable was unplugged. Plug it back in: the transfer continues where it stopped.',
+        text: tr.usbDetached,
         suggestHotspot: false,
       ),
-      UsbLinkState.error => (text: detail ?? 'The cable link failed. Unplug it and plug it back in.', suggestHotspot: true),
+      UsbLinkState.error => (text: tr.usbError, suggestHotspot: true),
       UsbLinkState.idle || UsbLinkState.noDevice when waitedLong => (
-        text: 'The phones have not found each other over the cable. One of them must act as USB host (OTG): try '
-            'turning the cable around, another USB-C cable, or an OTG adapter on the new phone. Or use "No Wi-Fi '
-            'around".',
+        text: tr.usbNoLink,
         suggestHotspot: true,
       ),
       UsbLinkState.idle || UsbLinkState.noDevice => (
-        text: 'Connect the phones with a USB-C cable (or an OTG adapter) and open HK Cloner on both. '
-            'Then tap Allow on both phones.',
+        text: tr.usbConnectHint,
         suggestHotspot: false,
       ),
     };

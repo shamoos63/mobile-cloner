@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cloner_core/cloner_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../l10n.dart';
 import '../platform/android_bridge.dart';
 import 'receive_journal.dart';
 import 'writers.dart';
@@ -74,7 +75,7 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
         }
         final tree = await bridge.treeCovering(path);
         if (tree == null) {
-          throw StateError('No access to $path. Grant the folder before receiving.');
+          throw StateError(tr.noFolderAccess(path));
         }
         return SafWriter(bridge, tree, tree.relative(path));
       case DeferredTarget(:final category, :final relPath):
@@ -116,7 +117,7 @@ class PhoneReceiveDelegate implements ReceiveDelegate {
       try {
         report.wallpaperSet = await bridge.applyWallpapers(home: wallpapers['home'], lock: wallpapers['lock']);
       } catch (e) {
-        report.problems.add('Could not set the wallpaper: $e');
+        report.problems.add(tr.wallpaperFailed('$e'));
       }
     }
     onReport(report);

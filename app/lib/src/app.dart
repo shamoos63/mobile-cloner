@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'l10n.dart';
+
 import 'services/app_settings.dart';
 import 'services/cloner_service.dart';
 import 'ui/desktop/desktop_home.dart';
@@ -19,18 +21,24 @@ class MobileClonerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: AppSettings.instance,
-      builder: (context, _) => _app(AppSettings.instance.themeMode),
+      builder: (context, _) => _app(AppSettings.instance),
     );
   }
 
-  Widget _app(ThemeMode themeMode) {
+  Widget _app(AppSettings settings) {
     return MaterialApp(
+      // A new language rebuilds every screen (back to home), so no widget
+      // keeps text in the old one.
+      key: ValueKey(settings.language),
       title: 'HK Cloner',
-      themeMode: themeMode,
+      themeMode: settings.themeMode,
+      locale: Locale(settings.language),
+      supportedLocales: S.supportedLocales,
+      localizationsDelegates: S.localizationsDelegates,
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(Brightness.light),
-      darkTheme: buildTheme(Brightness.dark),
+      theme: buildTheme(Brightness.light, arabic: settings.rtl),
+      darkTheme: buildTheme(Brightness.dark, arabic: settings.rtl),
       builder: (context, child) => IncomingRequestListener(navigatorKey: navigatorKey, child: child!),
       home: ListenableBuilder(
         listenable: ClonerService.instance,
@@ -39,13 +47,17 @@ class MobileClonerApp extends StatelessWidget {
           if (s.startupError != null) {
             return Scaffold(body: Center(child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Could not start: ${s.startupError}', textAlign: TextAlign.center),
+              child: Text(S.of(context).startupFailed(s.startupError!), textAlign: TextAlign.center),
             )));
           }
           if (!s.ready) {
-            return const Scaffold(body: Center(child: Column(
+            return Scaffold(body: Center(child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Preparing secure connection...')],
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(S.of(context).startupPreparing),
+              ],
             )));
           }
           return Platform.isAndroid ? const UsbLinkListener(child: PhoneHome()) : const DesktopHome();

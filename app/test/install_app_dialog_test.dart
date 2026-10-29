@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_cloner/src/ui/desktop/install_app_dialog.dart';
 
+import 'l10n_helpers.dart';
+
 void main() {
   late Directory tmp;
   late String bundled;
@@ -24,8 +26,8 @@ void main() {
     String? picked,
   }) async {
     final result = <bool?>[];
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
+    await tester.pumpWidget(localized(
+      Builder(
         builder: (context) => TextButton(
           onPressed: () async => result.add(await showDialog<bool>(
             context: context,
@@ -55,7 +57,9 @@ void main() {
     final calls = <String>[];
     final result = await open(tester, apkPath: bundled, calls: calls);
     expect(find.text("HK Cloner isn't on Galaxy A53"), findsOneWidget);
-    expect(find.textContaining('HK Cloner 0.1.0 (1) · 2.0 KB'), findsOneWidget);
+    // Version and size are wrapped left-to-right for Arabic text.
+    expect(find.textContaining('0.1.0 (1)'), findsOneWidget);
+    expect(find.textContaining('2.0 KB'), findsOneWidget);
     await tester.tap(find.text('Install on phone'));
     await tester.pumpAndSettle();
     expect(calls, ['install $bundled']);

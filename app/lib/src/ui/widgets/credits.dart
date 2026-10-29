@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../platform/android_bridge.dart';
 
 const authorName = 'Eng. Hisham Khateeb';
@@ -32,9 +33,9 @@ class Credits extends StatelessWidget {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final heart = Text.rich(
       TextSpan(children: [
-        const TextSpan(text: 'Made with '),
+        TextSpan(text: S.of(context).creditsMadeWith),
         const TextSpan(text: '♥', style: TextStyle(color: Color(0xFFE11D48))),
-        const TextSpan(text: ' by $authorName'),
+        TextSpan(text: S.of(context).creditsBy),
       ]),
       textAlign: compact ? TextAlign.center : TextAlign.start,
       style: (compact ? t.bodySmall : t.bodyMedium)?.copyWith(color: compact ? muted : null),
@@ -44,7 +45,7 @@ class Credits extends StatelessWidget {
       spacing: 4,
       children: [
         _link(Icons.language_rounded, 'hishamkhateeb.com', authorWebsite),
-        _link(Icons.send_rounded, authorTelegram, authorTelegramUrl),
+        _link(Icons.send_rounded, ltr(authorTelegram), authorTelegramUrl),
       ],
     );
     return Column(

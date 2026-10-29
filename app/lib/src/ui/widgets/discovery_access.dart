@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../platform/android_bridge.dart';
 import '../../services/cloner_service.dart';
 import '../theme.dart';
@@ -43,8 +44,9 @@ class _DiscoveryAccessCardState extends State<DiscoveryAccessCard> {
         final state = service.discoveryAccess;
         if (state == PermissionState.granted) return const SizedBox.shrink();
         final t = Theme.of(context).textTheme;
+        final s = S.of(context);
         final sdk = service.android?.sdkInt ?? 33;
-        final name = sdk >= 33 ? 'Nearby devices' : 'Location';
+        final name = sdk >= 33 ? s.nearbyDevicesPermission : s.locationPermission;
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -53,19 +55,16 @@ class _DiscoveryAccessCardState extends State<DiscoveryAccessCard> {
                 const IconBadge(Icons.radar_rounded, size: 44, color: AppColors.indigo),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text('Allow "$name" to find the other phone',
+                  child: Text(s.allowPermissionToFind(name),
                       style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 ),
               ]),
               const SizedBox(height: 10),
               Text(
                 [
-                  'Without it, phones on the same Wi-Fi or a USB cable cannot see each other.',
-                  if (sdk < 33)
-                    'Android ${service.android?.release ?? ''} calls this permission Location. '
-                        'HK Cloner never reads where you are.',
-                  if (state == PermissionState.blocked)
-                    'Android will not ask again. Open Settings > Permissions and allow $name.',
+                  s.discoveryWhy,
+                  if (sdk < 33) s.discoveryLocationNote(service.android?.release ?? ''),
+                  if (state == PermissionState.blocked) s.discoveryBlocked(name),
                 ].join(' '),
                 style: t.bodyMedium,
               ),
@@ -75,12 +74,12 @@ class _DiscoveryAccessCardState extends State<DiscoveryAccessCard> {
                   FilledButton(
                     style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
                     onPressed: () => _recheck(ask: true),
-                    child: const Text('Grant'),
+                    child: Text(s.grant),
                   ),
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
                   onPressed: service.bridge.openAppSettings,
-                  child: const Text('Open settings'),
+                  child: Text(s.openSettings),
                 ),
               ]),
             ]),

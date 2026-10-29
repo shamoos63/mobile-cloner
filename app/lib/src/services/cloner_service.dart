@@ -13,6 +13,7 @@ import '../platform/android_bridge.dart';
 import '../platform/usb_link.dart';
 import '../restore/phone_receive_delegate.dart';
 import '../restore/receive_journal.dart';
+import '../l10n.dart';
 import '../version.dart';
 import 'app_settings.dart';
 import 'format.dart';
@@ -306,21 +307,20 @@ class ClonerService extends ChangeNotifier {
         receiveSession = session;
         _lastReceived = session.receivedBytes;
         lastReport = null;
-        _foreground('Receiving from ${session.sender.info.alias}', 'Starting...', 0);
+        _foreground(tr.receivingFrom(session.sender.info.alias), tr.notifStarting, 0);
       case FileProgress(:final session):
         final now = session.receivedBytes;
         receiveMeter.add(now - _lastReceived);
         _lastReceived = now;
         final pct = session.totalBytes == 0 ? 100 : (now * 100 ~/ session.totalBytes);
-        _foreground('Receiving from ${session.sender.info.alias}',
-            '${formatBytes(now)} of ${formatBytes(session.totalBytes)} · ${formatSpeed(receiveMeter.bytesPerSecond)}', pct);
+        _foreground(tr.receivingFrom(session.sender.info.alias),
+            tr.notifReceiving(formatBytes(now), formatBytes(session.totalBytes), formatSpeed(receiveMeter.bytesPerSecond)), pct);
       case SessionEnded():
         _stopForeground();
       case PeerStatusReceived(:final status):
         senderStatus = status;
         if (status.isLow) {
-          _alert('Sending phone battery is low (${status.batteryLevel}%)',
-              'Plug it in. If it dies, the transfer resumes from where it stopped.');
+          _alert(tr.peerBatteryLowTitle(status.batteryLevel!), tr.peerBatteryLowBody);
         }
     }
     notifyListeners();
@@ -337,8 +337,7 @@ class ClonerService extends ChangeNotifier {
         localStatus = PeerStatus(batteryLevel: b.level, charging: b.charging, freeBytes: free);
         if (localStatus.isLow && !_warnedLowBattery && _busy) {
           _warnedLowBattery = true;
-          _alert('Battery low (${b.level}%)',
-              'Plug in this phone. Progress is saved, so the transfer can resume if it turns off.');
+          _alert(tr.selfBatteryLowTitle(b.level!), tr.selfBatteryLowBody);
         }
         if (!localStatus.isLow) _warnedLowBattery = false;
         if (localStatus.isCritical && _job != null) {
@@ -438,7 +437,7 @@ class ClonerService extends ChangeNotifier {
         client.pin(code.deviceFor(ip));
         final device = await client.probe(ip, port: code.port, https: code.https, timeout: const Duration(seconds: 4));
         if (device.fingerprint.toUpperCase() != code.fingerprint.toUpperCase()) {
-          throw const HandshakeException('Fingerprint mismatch');
+          throw HandshakeException(tr.codeWrongDevice);
         }
         _onPeer(device);
         return device;
@@ -446,7 +445,7 @@ class ClonerService extends ChangeNotifier {
         lastError = e;
       }
     }
-    throw lastError ?? StateError('No address reachable');
+    throw lastError ?? StateError(tr.noAddressReachable);
   }
 
   Future<Device> connectManual(String host, {int port = defaultPort}) async {
@@ -498,8 +497,8 @@ class ClonerService extends ChangeNotifier {
     final cp = checkpoint;
     if (cp == null) return;
     final t = target ?? sendTarget ?? peers[cp.peerFingerprint];
-    if (t == null) throw StateError('Reconnect to ${cp.peerAlias} first');
-    if (t.fingerprint != cp.peerFingerprint) throw StateError('That is a different device than ${cp.peerAlias}');
+    if (t == null) throw StateError(tr.reconnectFirst(cp.peerAlias));
+    if (t.fingerprint != cp.peerFingerprint) throw StateError(tr.differentDeviceThan(cp.peerAlias));
     await _run(t, files ?? _lastFiles, cp);
   }
 
@@ -531,9 +530,9 @@ class ClonerService extends ChangeNotifier {
     job.progress.listen((pr) {
       sendState = SendState.sending;
       sendProgress = pr;
-      _foreground('Sending to ${target.info.alias}',
-          '${pr.doneFiles}/${pr.totalFiles} files · ${formatSpeed(pr.bytesPerSecond)}'
-              '${pr.eta == null ? '' : ' · ${formatDuration(pr.eta!)} left'}',
+      _foreground(tr.sendingTo(target.info.alias),
+          '${tr.notifSending(pr.doneFiles, pr.totalFiles, formatSpeed(pr.bytesPerSecond))}'
+              '${pr.eta == null ? '' : ' · ${tr.notifTimeLeft(formatDuration(pr.eta!))}'}',
           (pr.fraction * 100).round());
       notifyListeners();
     });
@@ -548,7 +547,7 @@ class ClonerService extends ChangeNotifier {
     };
     if (result.outcome == SendOutcome.completed) checkpoint = null;
     if (result.outcome == SendOutcome.interrupted) {
-      _alert('Transfer paused', _interruptText(result.interruptReason));
+      _alert(tr.transferPaused, _interruptText(result.interruptReason));
     }
     _stopForeground();
     notifyListeners();
@@ -561,11 +560,11 @@ class ClonerService extends ChangeNotifier {
   }
 
   static String _interruptText(InterruptReason? r) => switch (r) {
-    InterruptReason.connectionLost => 'Connection lost. Reconnect (Wi-Fi, hotspot or cable) and tap Resume.',
-    InterruptReason.lowBatterySelf => 'Battery critical on this phone. Charge it and tap Resume.',
-    InterruptReason.lowBatteryPeer => 'Battery critical on the other phone. Charge it and tap Resume.',
-    InterruptReason.paused => 'Paused. Tap Resume to continue.',
-    _ => 'Stopped. Tap Resume to continue from where it stopped.',
+    InterruptReason.connectionLost => tr.interruptConnectionLost,
+    InterruptReason.lowBatterySelf => tr.interruptLowBatterySelf,
+    InterruptReason.lowBatteryPeer => tr.interruptLowBatteryPeer,
+    InterruptReason.paused => tr.interruptPaused,
+    _ => tr.interruptStopped,
   };
 
   String interruptText(InterruptReason? r) => _interruptText(r);

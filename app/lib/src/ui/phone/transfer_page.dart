@@ -1,6 +1,7 @@
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../services/cloner_service.dart';
 import '../../sources/rebuild.dart';
 import 'connect_page.dart';
@@ -72,17 +73,17 @@ class _TransferPageState extends State<TransferPage> {
       builder: (context, _) {
         final pr = service.sendProgress;
         final cp = service.checkpoint;
-        final peer = service.sendTarget?.info.alias ?? cp?.peerAlias ?? 'device';
+        final peer = service.sendTarget?.info.alias ?? cp?.peerAlias ?? S.of(context).deviceFallbackName;
         final interrupted = service.sendState == SendState.interrupted || service.sendState == SendState.failed;
         final done = service.sendState == SendState.done;
         final reason = interrupted
             ? (_error ??
                 (service.sendState == SendState.failed
-                    ? 'Transfer failed: ${service.sendResult?.error ?? 'unknown error'}'
+                    ? S.of(context).transferFailed('${service.sendResult?.error ?? S.of(context).unknownError}')
                     : service.interruptText(service.sendResult?.interruptReason)))
             : null;
         return TransferView(
-          title: done ? 'All done' : 'Sending to $peer',
+          title: done ? S.of(context).allDone : S.of(context).sendingTo(peer),
           peerName: peer,
           fraction: done ? 1 : (pr?.fraction ?? 0),
           doneBytes: pr?.sentBytes ?? 0,

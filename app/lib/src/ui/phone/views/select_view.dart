@@ -2,6 +2,7 @@ import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../services/format.dart';
+import '../../../l10n.dart';
 import '../../theme.dart';
 import '../../widgets/labels.dart';
 import '../../widgets/visuals.dart';
@@ -59,8 +60,9 @@ class SelectContentView extends StatelessWidget {
     final selected = items.where((i) => i.selected);
     final totalBytes = selected.fold(0, (a, i) => a + (i.bytes ?? 0));
     final totalCount = selected.fold(0, (a, i) => a + (i.count ?? 0));
+    final s = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose what to move'), leading: const BackButton()),
+      appBar: AppBar(title: Text(s.chooseWhatToMove), leading: const BackButton()),
       body: SafeArea(
         child: Column(
           children: [
@@ -74,23 +76,23 @@ class SelectContentView extends StatelessWidget {
                       leading: IconBadge(targetIsDesktop ? Icons.computer_rounded : Icons.smartphone_rounded,
                           color: AppColors.teal, size: 44),
                       title: Text(targetName, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                      subtitle: const Text('Connected · encrypted'),
+                      subtitle: Text(s.connectedEncrypted),
                       trailing: const Icon(Icons.lock_rounded, size: 18, color: AppColors.teal),
                     ),
                   ),
-                  const SectionLabel('Content'),
+                  SectionLabel(s.sectionContent),
                   for (final item in items) ...[
                     _ItemCard(item: item, onToggle: (v) => onToggle(item.category, v)),
                     if (item.category == ContentCategory.whatsapp && item.selected && onWhatsAppScope != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(value: false, label: Text('Chats + media'), icon: Icon(Icons.perm_media_outlined)),
-                            ButtonSegment(value: true, label: Text('Chats only'), icon: Icon(Icons.chat_bubble_outline)),
+                          segments: [
+                            ButtonSegment(value: false, label: Text(s.chatsAndMedia), icon: const Icon(Icons.perm_media_outlined)),
+                            ButtonSegment(value: true, label: Text(s.chatsOnly), icon: const Icon(Icons.chat_bubble_outline)),
                           ],
                           selected: {whatsAppChatsOnly},
-                          onSelectionChanged: (s) => onWhatsAppScope!(s.first),
+                          onSelectionChanged: (v) => onWhatsAppScope!(v.first),
                         ),
                       ),
                     const SizedBox(height: 10),
@@ -107,12 +109,12 @@ class SelectContentView extends StatelessWidget {
               child: Column(
                 children: [
                   Row(children: [
-                    Text('$totalCount items', style: t.titleSmall),
+                    Text(s.itemsCount(totalCount), style: t.titleSmall),
                     const Spacer(),
                     Text(formatBytes(totalBytes), style: t.titleSmall?.copyWith(color: AppColors.indigo)),
                   ]),
                   const SizedBox(height: 12),
-                  FilledButton(onPressed: onStart, child: Text(targetIsDesktop ? 'Start backup' : 'Start transfer')),
+                  FilledButton(onPressed: onStart, child: Text(targetIsDesktop ? s.startBackup : s.startTransfer)),
                 ],
               ),
             ),
@@ -133,7 +135,8 @@ class _ItemCard extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final details = [
-      if (item.count != null) '${item.count} ${item.category == ContentCategory.contacts ? 'contacts' : 'files'}',
+      if (item.count != null)
+        item.category == ContentCategory.contacts ? S.of(context).contactsCount(item.count!) : S.of(context).filesCount(item.count!),
       if (item.bytes != null && item.bytes! > 0) formatBytes(item.bytes!),
       if (item.note != null) item.note!,
     ].join(' · ');
@@ -142,7 +145,7 @@ class _ItemCard extends StatelessWidget {
       child: InkWell(
         onTap: () => onToggle(!item.selected),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 8, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -161,7 +164,7 @@ class _ItemCard extends StatelessWidget {
                             ? Row(children: [
                                 SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: muted)),
                                 const SizedBox(width: 8),
-                                Text('Scanning...', style: t.bodySmall?.copyWith(color: muted)),
+                                Text(S.of(context).scanning, style: t.bodySmall?.copyWith(color: muted)),
                               ])
                             : Text(details, style: t.bodySmall?.copyWith(color: muted)),
                       ],
@@ -173,8 +176,8 @@ class _ItemCard extends StatelessWidget {
               if (item.warning != null || item.actionLabel != null) ...[
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 8, 8),
+                  margin: const EdgeInsetsDirectional.only(end: 8),
                   decoration: BoxDecoration(
                     color: AppColors.amber.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),

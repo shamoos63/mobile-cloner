@@ -1,5 +1,7 @@
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
+
+import '../../l10n.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../platform/android_bridge.dart';
@@ -25,7 +27,7 @@ class _ScanPageState extends State<ScanPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(foregroundColor: Colors.white, title: const Text('Scan the code', style: TextStyle(color: Colors.white))),
+      appBar: AppBar(foregroundColor: Colors.white, title: Text(S.of(context).scanTheCode, style: const TextStyle(color: Colors.white))),
       body: Stack(
         children: [
           MobileScanner(

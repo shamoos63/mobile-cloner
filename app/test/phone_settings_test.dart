@@ -6,6 +6,8 @@ import 'package:mobile_cloner/src/ui/phone/views/home_view.dart';
 import 'package:mobile_cloner/src/ui/phone/views/settings_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'l10n_helpers.dart';
+
 void main() {
   group('AppSettings', () {
     test('loads saved values and defaults', () async {
@@ -18,6 +20,27 @@ void main() {
       await AppSettings.instance.load();
       expect((AppSettings.instance.deviceName, AppSettings.instance.themeMode, AppSettings.instance.keepScreenOn),
           ('Old phone', ThemeMode.dark, false));
+    });
+
+    test('Arabic by default, and the chosen language survives a restart', () async {
+      // Fresh install: Arabic whatever the system language is.
+      SharedPreferences.setMockInitialValues({});
+      final s = AppSettings.instance..language = 'en';
+      await s.load();
+      expect((s.language, s.rtl), ('ar', true));
+
+      await s.setLanguage('en');
+      expect((await SharedPreferences.getInstance()).getString('language'), 'en');
+      s.language = 'ar'; // as after a restart, before loading
+      await s.load();
+      expect((s.language, s.rtl), ('en', false));
+
+      // Unknown values are ignored.
+      await s.setLanguage('fr');
+      expect(s.language, 'en');
+      SharedPreferences.setMockInitialValues({'language': 'xx'});
+      await s.load();
+      expect(s.language, 'ar');
     });
 
     test('every setter saves, and a blank name resets to the model', () async {
@@ -39,8 +62,8 @@ void main() {
 
   testWidgets('home settings button opens settings', (tester) async {
     var opened = 0;
-    await tester.pumpWidget(MaterialApp(
-      home: PhoneHomeView(
+    await tester.pumpWidget(localized(
+      PhoneHomeView(
         deviceName: 'Galaxy A53',
         osLabel: 'Android 14',
         myStatus: null,
@@ -65,16 +88,18 @@ void main() {
     const nearby = PermissionItem(icon: Icons.radar, title: 'Nearby devices', purpose: 'p', state: PermissionState.denied);
     const camera = PermissionItem(icon: Icons.camera, title: 'Camera', purpose: 'p', state: PermissionState.blocked);
     const photos = PermissionItem(icon: Icons.photo, title: 'Photos and videos', purpose: 'p', state: PermissionState.granted);
-    await tester.pumpWidget(MaterialApp(
-      home: PhoneSettingsView(
+    await tester.pumpWidget(localized(
+      PhoneSettingsView(
         deviceName: 'Samsung SM-A536E',
         defaultDeviceName: 'Samsung SM-A536E',
         themeMode: ThemeMode.system,
+        language: 'ar',
         keepScreenOn: true,
         permissions: const [nearby, camera, photos],
         version: '0.1.0 (1)',
         onRename: (n) => events.add('rename $n'),
         onThemeMode: (m) => events.add('theme ${m.name}'),
+        onLanguage: (l) => events.add('language $l'),
         onKeepScreenOn: (on) => events.add('screen $on'),
         onGrant: (p) => events.add('grant ${p.title}'),
         onOpenAppSettings: () => events.add('app settings'),
@@ -87,6 +112,7 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('English'));
     await tester.tap(find.text('Dark'));
     await tester.tap(find.byType(Switch));
     await tester.tap(find.text('Allow'));
@@ -96,6 +122,7 @@ void main() {
 
     expect(events, [
       'rename Old phone',
+      'language en',
       'theme dark',
       'screen false',
       'grant Nearby devices',
@@ -104,6 +131,6 @@ void main() {
     ]);
     // Granted permissions show a check instead of a button.
     expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
-    expect(find.text('Version 0.1.0 (1)'), findsOneWidget);
+    expect(find.textContaining('0.1.0 (1)'), findsOneWidget);
   });
 }

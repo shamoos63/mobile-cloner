@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../l10n.dart';
+
 /// The window's own title bar (the OS one is hidden): drag to move,
 /// double-click to maximize, and minimize / maximize / close buttons.
 class DesktopTitleBar extends StatefulWidget {
@@ -46,6 +48,7 @@ class _DesktopTitleBarState extends State<DesktopTitleBar> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Material(
       child: Container(
         height: DesktopTitleBar.height,
@@ -53,43 +56,50 @@ class _DesktopTitleBarState extends State<DesktopTitleBar> with WindowListener {
           // Same colours as the sidebar, so the two read as one panel.
           gradient: LinearGradient(colors: [Color(0xFF1E1B4B), Color(0xFF0F172A)]),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onPanStart: (_) => windowManager.startDragging(),
-                onDoubleTap: _toggleMaximize,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: Row(children: [
-                    Image.asset('assets/logo.png', width: 22, height: 22, filterQuality: FilterQuality.medium),
-                    const SizedBox(width: 8),
-                    const Flexible(
-                      child: Text(
-                        'HK Cloner',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
-                      ),
+        // Window buttons stay at the physical right in Arabic too, where
+        // Windows and Linux put them.
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onPanStart: (_) => windowManager.startDragging(),
+                  onDoubleTap: _toggleMaximize,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        Image.asset('assets/logo.png', width: 22, height: 22, filterQuality: FilterQuality.medium),
+                        const SizedBox(width: 8),
+                        const Flexible(
+                          child: Text(
+                            'HK Cloner',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                        ),
+                      ],
                     ),
-                  ]),
+                  ),
                 ),
               ),
-            ),
-            _WindowButton(icon: Icons.remove_rounded, tooltip: 'Minimize', onPressed: windowManager.minimize),
-            _WindowButton(
-              icon: _maximized ? Icons.filter_none_rounded : Icons.crop_square_rounded,
-              iconSize: _maximized ? 13 : 15,
-              tooltip: _maximized ? 'Restore' : 'Maximize',
-              onPressed: _toggleMaximize,
-            ),
-            _WindowButton(
-              icon: Icons.close_rounded,
-              tooltip: 'Close',
-              hover: const Color(0xFFE81123),
-              onPressed: windowManager.close,
-            ),
-          ],
+              _WindowButton(icon: Icons.remove_rounded, tooltip: s.minimize, onPressed: windowManager.minimize),
+              _WindowButton(
+                icon: _maximized ? Icons.filter_none_rounded : Icons.crop_square_rounded,
+                iconSize: _maximized ? 13 : 15,
+                tooltip: _maximized ? s.restoreWindow : s.maximize,
+                onPressed: _toggleMaximize,
+              ),
+              _WindowButton(
+                icon: Icons.close_rounded,
+                tooltip: s.close,
+                hover: const Color(0xFFE81123),
+                onPressed: windowManager.close,
+              ),
+            ],
+          ),
         ),
       ),
     );

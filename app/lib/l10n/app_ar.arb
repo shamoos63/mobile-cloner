@@ -1,0 +1,727 @@
+{
+  "@@locale": "ar",
+  "accept": "قبول",
+  "adbChecking": "جارٍ البحث عن HK Cloner...",
+  "adbInstalledOpened": "تم التثبيت والفتح. اختر على الهاتف ما تريد نسخه احتياطيًا.",
+  "adbMissing": "HK Cloner غير مثبت على الهاتف",
+  "adbMissingRetry": "HK Cloner غير مثبت على الهاتف. انقر إعادة المحاولة لتثبيته.",
+  "adbOlderOpened": "فُتح إصدار HK Cloner القديم على الهاتف. انقر إعادة المحاولة لتحديثه.",
+  "adbOpened": "فُتح على الهاتف. اختر هناك ما تريد نسخه احتياطيًا.",
+  "adbOutdated": "إصدار HK Cloner قديم",
+  "adbSetupFailed": "فشل الإعداد: {error}",
+  "@adbSetupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "adbTapAllow": "اضغط \"سماح\" على الهاتف ليثق بهذا الكمبيوتر",
+  "adbUpdatedOpened": "تم التحديث والفتح. اختر على الهاتف ما تريد نسخه احتياطيًا.",
+  "allDone": "اكتمل كل شيء",
+  "allow": "سماح",
+  "allowPermissionToFind": "اسمح بإذن \"{name}\" للعثور على الهاتف الآخر",
+  "@allowPermissionToFind": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "allowWhatsappFolder": "السماح بمجلد واتساب",
+  "allowWhatsappFolderHint": "مطلوب مرة واحدة على أندرويد 11 وما بعده لاستعادة المحادثات.",
+  "allowed": "مسموح",
+  "androidApi": "أندرويد API {level}",
+  "@androidApi": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "androidVersion": "أندرويد {version}",
+  "@androidVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "apkSummary": "HK Cloner {version} · {size}",
+  "@apkSummary": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "appMissingOn": "HK Cloner غير مثبت على {device}",
+  "@appMissingOn": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "appOutdatedOn": "إصدار HK Cloner على {device} قديم",
+  "@appOutdatedOn": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "appTitle": "HK Cloner",
+  "backUpNow": "انسخ الآن",
+  "backingUp": "جارٍ النسخ الاحتياطي",
+  "backupFolder": "مجلد النسخ الاحتياطي",
+  "backupStation": "محطة النسخ الاحتياطي",
+  "backupStationHint": "يمكن للهواتف على هذه الشبكة أو الموصولة عبر USB أن تحفظ نسخها الاحتياطية هنا.",
+  "backupToComputer": "نسخ احتياطي إلى الكمبيوتر",
+  "backupToComputerSubtitle": "تدريجي: تُنسخ الملفات الجديدة فقط",
+  "backups": "النسخ الاحتياطية",
+  "backupsHint": "كل هاتف نُسخ احتياطيًا على هذا الكمبيوتر.",
+  "battery": "البطارية",
+  "cancel": "إلغاء",
+  "categoryApps": "التطبيقات",
+  "categoryAudio": "الموسيقى",
+  "categoryCallLogs": "سجل المكالمات",
+  "categoryContacts": "جهات الاتصال",
+  "categoryDocuments": "المستندات",
+  "categoryFiles": "الملفات",
+  "categoryFromDevice": "{category} من {device}",
+  "@categoryFromDevice": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryMessages": "الرسائل",
+  "categoryPhotos": "الصور",
+  "categoryVideos": "الفيديوهات",
+  "categoryWallpaper": "خلفية الشاشة",
+  "categoryWhatsapp": "واتساب",
+  "categoryWhatsappBusiness": "واتساب للأعمال",
+  "changeFolder": "تغيير المجلد",
+  "chatsAndMedia": "المحادثات + الوسائط",
+  "chatsOnly": "المحادثات فقط",
+  "chooseApk": "اختيار ملف APK...",
+  "chooseApkDialogTitle": "اختر ملف HK Cloner بصيغة APK",
+  "chooseComputer": "اختر جهاز كمبيوتر",
+  "chooseNewPhone": "اختر الهاتف الجديد",
+  "chooseWhatToMove": "اختر ما تريد نقله",
+  "close": "إغلاق",
+  "codeWrongDevice": "هذا الرمز يخص جهازًا مختلفًا.",
+  "codedAndDesignedBy": "برمجة وتصميم م. هشام الخطيب",
+  "computerOverUsb": "الكمبيوتر عبر USB",
+  "computerOverUsbSubtitle": "وصّل الهاتف بالكمبيوتر بعد فتح HK Cloner عليه",
+  "confirmContactsImport": "أكّد الاستيراد في جهات الاتصال",
+  "connect": "اتصال",
+  "connectAPhone": "وصّل هاتفًا",
+  "connectByAddress": "الاتصال بالعنوان",
+  "connectFailed": "تعذّر الاتصال: {error}",
+  "@connectFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "connectWireless": "لاسلكيًا: امسح الرمز بتطبيق HK Cloner، أو اختر \"{host}\" من القائمة على الهاتف.",
+  "@connectWireless": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "connectedEncrypted": "متصل · مشفّر",
+  "contactsCount": "{count, plural, =0{لا جهات اتصال} =1{جهة اتصال واحدة} =2{جهتا اتصال} few{{count} جهات اتصال} many{{count} جهة اتصال} other{{count} جهة اتصال}}",
+  "@contactsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "contactsImportHint": "فُتح تطبيق جهات الاتصال مع الملف. اختر مكان حفظها.",
+  "contactsReceived": "تم استلام جهات الاتصال",
+  "continueAnotherWay": "المتابعة بطريقة أخرى",
+  "copied": "تم نسخه",
+  "couldNotDelete": "تعذّر الحذف: {error}",
+  "@couldNotDelete": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotReach": "تعذّر الوصول إلى {name}: {error}",
+  "@couldNotReach": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsBy": " بواسطة م. هشام الخطيب",
+  "creditsMadeWith": "صُنع بـ ",
+  "decline": "رفض",
+  "delete": "حذف",
+  "deleteBackup": "حذف النسخة الاحتياطية",
+  "deleteBackupBody": "سيؤدي هذا إلى حذف {size} من\n{path}\n\nلن يُمس الهاتف نفسه.",
+  "@deleteBackupBody": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteBackupTitle": "حذف النسخة الاحتياطية لـ {name}؟",
+  "@deleteBackupTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deletedBackup": "تم حذف النسخة الاحتياطية لـ {name}.",
+  "@deletedBackup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "desktopBackupStation": "محطة النسخ الاحتياطي على الكمبيوتر",
+  "desktopSettingsHint": "مكان حفظ النسخ الاحتياطية، ومعلومات عن التطبيق.",
+  "deviceBackups": "نسخ الأجهزة الاحتياطية",
+  "deviceFallbackName": "الجهاز",
+  "deviceName": "اسم الجهاز",
+  "deviceNameHint": "تظهر هذه التسمية للهواتف وأجهزة الكمبيوتر الأخرى. اتركها فارغة لاستخدام \"{model}\".",
+  "@deviceNameHint": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "devices": "الأجهزة",
+  "devicesHint": "الهواتف الموصولة عبر USB أو التي تشغّل HK Cloner على هذه الشبكة.",
+  "differentDevice": "هذا جهاز مختلف عن الجهاز الذي كنت ترسل إليه.",
+  "differentDeviceThan": "هذا جهاز مختلف عن {name}",
+  "@differentDeviceThan": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "discard": "تجاهل",
+  "discoveryBlocked": "لن يطلب أندرويد الإذن مرة أخرى. افتح الإعدادات > الأذونات واسمح بـ {name}.",
+  "@discoveryBlocked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "discoveryLocationNote": "يسمّي أندرويد {version} هذا الإذن \"الموقع\". لا يقرأ HK Cloner موقعك أبدًا.",
+  "@discoveryLocationNote": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "discoveryWhy": "بدونه لا يستطيع الهاتفان رؤية بعضهما على شبكة Wi-Fi نفسها أو عبر كابل USB.",
+  "done": "تم",
+  "durationHoursMinutes": "{hours} س {minutes} د",
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationMinutes": "{minutes} د",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationSeconds": "{seconds} ث",
+  "@durationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "encryptedProgressSaved": "مشفّر · يُحفظ التقدّم باستمرار",
+  "encryption": "التشفير",
+  "encryptionHint": "عمليات النقل مشفّرة من طرف إلى طرف على شبكتك المحلية.",
+  "enterAddress": "إدخال العنوان",
+  "enterAddressSubtitle": "يظهر أسفل رمز QR على الجهاز الآخر",
+  "filesCount": "{count, plural, =0{لا ملفات} =1{ملف واحد} =2{ملفان} few{{count} ملفات} many{{count} ملفًا} other{{count} ملف}}",
+  "@filesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filesProgress": "{done} من {total} ملف",
+  "@filesProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "finishWhatsapp": "أكمل إعداد واتساب",
+  "fromName": "من {name}",
+  "@fromName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "grant": "منح الإذن",
+  "history": "السجل",
+  "historyHint": "أحدث النسخ الاحتياطية، الأحدث أولًا.",
+  "homeHeadline": "انقل كل شيء\nإلى هاتفك الجديد",
+  "homeIntro": "الصور والفيديوهات وجهات الاتصال ومحادثات واتساب. عبر Wi-Fi أو نقطة اتصال أو كابل، ويُكمل النقل من حيث توقف.",
+  "hotspotFailed": "تعذّر تشغيل نقطة الاتصال ({error}). استخدم نقطة الاتصال من الإعدادات بدلًا من ذلك.",
+  "@hotspotFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "hotspotOn": "نقطة الاتصال \"{ssid}\" تعمل. ينضم إليها رمز QR تلقائيًا.",
+  "@hotspotOn": {
+    "placeholders": {
+      "ssid": {
+        "type": "String"
+      }
+    }
+  },
+  "hotspotUseSettings": "شغّل نقطة الاتصال من الإعدادات، ووصّل الهاتف القديم بها، ثم امسح الرمز.",
+  "howConnected": "كيف يتصل الهاتفان؟",
+  "installBlocked": "رفض الهاتف التثبيت. انظر إلى الهاتف: إن ظهر سؤال، اضغط تثبيت (أو \"التثبيت على أي حال\"). في هواتف Xiaomi فعّل خيارات المطوّر > \"التثبيت عبر USB\". ثم حاول مجددًا.",
+  "installDowngrade": "على الهاتف إصدار أحدث من HK Cloner. تثبيت هذا الإصدار يعني إلغاء تثبيت الأحدث أولًا، وهذا يحذف بيانات HK Cloner على الهاتف. لن تُمس الصور وجهات الاتصال والتطبيقات الأخرى.",
+  "installExplain": "سيثبّت هذا الكمبيوتر HK Cloner على الهاتف عبر الكابل ثم يفتحه.",
+  "installFailed": "فشل التثبيت: {detail}",
+  "@installFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "installInvalidApk": "هذا الملف ليس ملف APK صالحًا لـ HK Cloner. اختر ملفًا آخر.",
+  "installNoSpace": "لا توجد مساحة كافية على الهاتف. حرّر {size} على الأقل ثم حاول مجددًا.",
+  "@installNoSpace": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "installNotAuthorized": "الهاتف لا يثق بهذا الكمبيوتر بعد. افتح قفله واضغط سماح على \"السماح بتصحيح أخطاء USB؟\" (حدّد \"السماح دائمًا من هذا الكمبيوتر\")، ثم حاول مجددًا.",
+  "installOnPhone": "التثبيت على الهاتف",
+  "installTapInstall": "إذا سألك الهاتف عن التثبيت، اضغط تثبيت.",
+  "installUpdateIncompatible": "على الهاتف نسخة مختلفة من HK Cloner (من كمبيوتر آخر أو من متجر آخر). لا يستبدلها أندرويد إلا بعد إلغاء تثبيتها، وهذا يحذف بيانات HK Cloner على الهاتف: إعداداته وأي نقل غير مكتمل. لن تُمس الصور وجهات الاتصال والتطبيقات الأخرى.",
+  "installingOn": "جارٍ التثبيت على {device}. قد يستغرق ذلك دقيقة.",
+  "@installingOn": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "interruptConnectionLost": "انقطع الاتصال. أعد الاتصال (Wi-Fi أو نقطة اتصال أو كابل) واضغط استئناف.",
+  "interruptLowBatteryPeer": "البطارية منخفضة جدًا على الهاتف الآخر. اشحنه واضغط استئناف.",
+  "interruptLowBatterySelf": "البطارية منخفضة جدًا على هذا الهاتف. اشحنه واضغط استئناف.",
+  "interruptPaused": "متوقف مؤقتًا. اضغط استئناف للمتابعة.",
+  "interruptStopped": "توقف النقل. اضغط استئناف للمتابعة من حيث توقف.",
+  "itemsCount": "{count, plural, =0{لا عناصر} =1{عنصر واحد} =2{عنصران} few{{count} عناصر} many{{count} عنصرًا} other{{count} عنصر}}",
+  "@itemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "itemsMoved": "تم نقل {done} من {total} عنصر",
+  "@itemsMoved": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "keepScreenOn": "إبقاء الشاشة مضاءة",
+  "keepScreenOnHint": "أثناء الإرسال أو الاستقبال. بعض الهواتف تُبطئ شبكة Wi-Fi عند إطفاء الشاشة.",
+  "lastBackupAt": "آخر نسخة احتياطية {when}",
+  "@lastBackupAt": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "lastChatBackupDays": "{days, plural, =1{آخر نسخة احتياطية للمحادثات: منذ يوم واحد} =2{آخر نسخة احتياطية للمحادثات: منذ يومين} few{آخر نسخة احتياطية للمحادثات: منذ {days} أيام} many{آخر نسخة احتياطية للمحادثات: منذ {days} يومًا} other{آخر نسخة احتياطية للمحادثات: منذ {days} يوم}}",
+  "@lastChatBackupDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "lastChatBackupHours": "آخر نسخة احتياطية للمحادثات: منذ {hours} س",
+  "@lastChatBackupHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "linked": "متصل",
+  "locationPermission": "الموقع",
+  "lookForPhones": "البحث عن هواتف",
+  "lookingForDevices": "جارٍ البحث عن الأجهزة. على الجهاز الآخر، افتح HK Cloner واضغط استقبال.",
+  "maximize": "تكبير",
+  "minimize": "تصغير",
+  "modeCableHint": "الأسرع. كابل USB-C إلى USB-C أو محوّل OTG",
+  "modeHotspot": "لا توجد شبكة Wi-Fi",
+  "modeHotspotHint": "ينشئ هذا الهاتف نقطة اتصال خاصة، وينضم إليها رمز QR",
+  "modeWifi": "نفس شبكة Wi-Fi",
+  "modeWifiHint": "يجد الهاتفان بعضهما تلقائيًا",
+  "nearbyDevicesPermission": "الأجهزة المجاورة",
+  "nearbyOnWifi": "قريبة على شبكة Wi-Fi",
+  "noAddressReachable": "تعذّر الوصول إلى الجهاز الآخر على أيٍّ من عناوينه.",
+  "noBackupsYet": "لا توجد نسخ احتياطية بعد. افتح HK Cloner على هاتف واضغط \"نسخ احتياطي إلى الكمبيوتر\".",
+  "noBundledApk": "لم يُعثر على تطبيق الهاتف في هذه النسخة من HK Cloner. اختر ملف HK Cloner بصيغة APK ({file}) لتثبيته على الهاتف.",
+  "@noBundledApk": {
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "noFolderAccess": "لا يوجد وصول إلى {path}. امنح الإذن للمجلد قبل الاستقبال.",
+  "@noFolderAccess": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "noPhonesFound": "لم يُعثر على هواتف بعد. افتح HK Cloner على هاتف متصل بالشبكة نفسها.",
+  "notFindingHelp": "نفس شبكة Wi-Fi: يجب أن يكون الهاتفان على الشبكة نفسها، وبعض أجهزة الراوتر (شبكات الضيوف) تعزل الأجهزة عن بعضها.\n\nكابل USB: افتح HK Cloner على الهاتفين واضغط سماح على كليهما. يجب أن يعمل أحد الهاتفين كمضيف USB (OTG)؛ إن لم يحدث شيء، اقلب الكابل أو استخدم محوّل OTG.\n\nلا يوجد راوتر إطلاقًا: اختر \"لا توجد شبكة Wi-Fi\" على الهاتف الجديد وامسح رمزه.",
+  "notNow": "ليس الآن",
+  "nothingBackedUp": "لم يُنسخ شيء احتياطيًا بعد.",
+  "nothingLost": "لم يضِع شيء. استأنف من هنا، أو انتقل إلى نقطة الاتصال أو كابل USB أو رمز QR.",
+  "notifReceiving": "{done} من {total} · {speed}",
+  "@notifReceiving": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "notifSending": "{done}/{total} ملف · {speed}",
+  "@notifSending": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "notifStarting": "جارٍ البدء...",
+  "notifTimeLeft": "متبقٍ {time}",
+  "@notifTimeLeft": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "open": "فتح",
+  "openAndroidAppSettings": "فتح إعدادات التطبيق في أندرويد",
+  "openAndroidAppSettingsHint": "الأذونات والتخزين والإشعارات لتطبيق HK Cloner",
+  "openSettings": "فتح الإعدادات",
+  "openWhatsapp": "فتح واتساب",
+  "overview": "نظرة عامة",
+  "pause": "إيقاف مؤقت",
+  "paused": "متوقف مؤقتًا",
+  "peerBatteryLowBody": "وصّله بالشاحن. إن انطفأ، يُستأنف النقل من حيث توقف.",
+  "peerBatteryLowTitle": "بطارية الهاتف المُرسِل منخفضة ({level}%)",
+  "@peerBatteryLowTitle": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "permAllFiles": "جميع الملفات (واتساب)",
+  "permAllFilesPurpose": "قراءة محادثات واتساب واستعادتها على أندرويد 11 وما بعده",
+  "permCamera": "الكاميرا",
+  "permCameraPurpose": "مسح رمز QR للاقتران",
+  "permContactsPurpose": "إرسال جهات الاتصال واستقبالها",
+  "permLocationPurpose": "العثور على الهاتف الآخر عبر Wi-Fi (لا يقرأ موقعك أبدًا)",
+  "permNearbyPurpose": "العثور على الهاتف الآخر عبر Wi-Fi والكابل",
+  "permNotifications": "الإشعارات",
+  "permNotificationsPurpose": "عرض التقدّم أثناء النقل",
+  "permPhotos": "الصور والفيديوهات",
+  "permPhotosPurpose": "إرسال معرض الصور واستقباله",
+  "phone": "الهاتف",
+  "plugInPhone": "وصّل هاتفًا مع تفعيل تصحيح أخطاء USB. سيُثبَّت HK Cloner ويُفتح عليه تلقائيًا.",
+  "readyAt": "جاهز · {address}",
+  "@readyAt": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "receive": "استقبال",
+  "receiveSubtitle": "هذا هاتفي الجديد",
+  "receivingFrom": "جارٍ الاستقبال من {name}",
+  "@receivingFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reconnectFirst": "أعد الاتصال بـ {name} أولًا",
+  "@reconnectFirst": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "refresh": "تحديث",
+  "restore": "استعادة",
+  "restoreComplete": "اكتملت الاستعادة.",
+  "restoreFromComputer": "استعادة من الكمبيوتر",
+  "restoreFromComputerSubtitle": "استرجع نسخة احتياطية إلى هذا الهاتف",
+  "restoreNoPhone": "افتح HK Cloner على الهاتف واضغط \"استعادة من الكمبيوتر\"، أو صِله عبر USB.",
+  "restoreStopped": "توقفت الاستعادة إلى {name} عند {done} من {total} ملف.",
+  "@restoreStopped": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreToWhichPhone": "الاستعادة إلى أي هاتف؟",
+  "restoreWindow": "استعادة الحجم",
+  "resume": "استئناف",
+  "retry": "إعادة المحاولة",
+  "save": "حفظ",
+  "scanQrCode": "مسح رمز QR",
+  "scanQrCodeSubtitle": "يعمل أيضًا مع نقطة الاتصال وكابل USB",
+  "scanTheCode": "امسح الرمز",
+  "scanThisWithOldPhone": "امسح هذا الرمز بتطبيق HK Cloner على هاتفك القديم",
+  "scanning": "جارٍ الفحص...",
+  "sectionAbout": "حول التطبيق",
+  "sectionAppearance": "المظهر",
+  "sectionComputer": "الكمبيوتر",
+  "sectionContent": "المحتوى",
+  "sectionLanguage": "اللغة",
+  "sectionNearby": "بالقرب منك",
+  "sectionNotFinding": "لا يظهر الجهاز؟",
+  "sectionOtherWays": "طرق أخرى للاتصال",
+  "sectionPermissions": "الأذونات",
+  "sectionPhoneToPhone": "من هاتف إلى هاتف",
+  "sectionProgress": "التقدّم",
+  "sectionThisPhone": "هذا الهاتف",
+  "sectionTransfers": "النقل",
+  "selfBatteryLowBody": "وصّل هذا الهاتف بالشاحن. التقدّم محفوظ، فيمكن استئناف النقل إن انطفأ.",
+  "selfBatteryLowTitle": "البطارية منخفضة ({level}%)",
+  "@selfBatteryLowTitle": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "send": "إرسال",
+  "sendSubtitle": "هذا هاتفي القديم",
+  "sendingTo": "جارٍ الإرسال إلى {name}",
+  "@sendingTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sentFromLocalSend": "مُرسل من LocalSend.",
+  "sentFromLocalSendDownloads": "مُرسل من LocalSend. تُحفظ الملفات في التنزيلات.",
+  "settings": "الإعدادات",
+  "sidebarEncrypted": "مشفّر من طرف إلى طرف على شبكتك المحلية",
+  "sizeOfSize": "{done} من {total}",
+  "@sizeOfSize": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "startBackup": "بدء النسخ الاحتياطي",
+  "startTransfer": "بدء النقل",
+  "startupFailed": "تعذّر التشغيل: {error}",
+  "@startupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "startupPreparing": "جارٍ تجهيز الاتصال الآمن...",
+  "storedInBackupFolder": "يُحفظ كل شيء في مجلد النسخ الاحتياطي لهذا الجهاز.",
+  "themeDark": "داكن",
+  "themeLight": "فاتح",
+  "themeSystem": "النظام",
+  "thisComputer": "هذا الكمبيوتر",
+  "thisPhone": "هذا الهاتف",
+  "tickToScan": "حدّد للفحص",
+  "timeLeft": "الوقت المتبقي",
+  "total": "الإجمالي",
+  "transferComplete": "اكتمل النقل",
+  "transferFailed": "فشل النقل: {error}",
+  "@transferFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "transferPaused": "توقف النقل مؤقتًا",
+  "transfersShowLive": "تظهر عمليات النقل هنا مباشرة.",
+  "tryAgain": "حاول مجددًا",
+  "unfinishedTransferTo": "نقل غير مكتمل إلى {name}",
+  "@unfinishedTransferTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "uninstallAndInstall": "إلغاء التثبيت ثم التثبيت",
+  "unknownError": "خطأ غير معروف",
+  "updateExplain": "على الهاتف الإصدار {version}. التحديث يحتفظ ببياناته.",
+  "@updateExplain": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateOnPhone": "التحديث على الهاتف",
+  "usbCable": "كابل USB",
+  "usbComputerUnreachable": "تعذّر الوصول إلى الكمبيوتر عبر USB. افصل الكابل ثم أعد توصيله.",
+  "usbConnectHint": "وصّل الهاتفين بكابل USB-C (أو محوّل OTG) وافتح HK Cloner على كليهما. ثم اضغط سماح على الهاتفين.",
+  "usbConnected": "متصل بالكابل. على الهاتف القديم، اضغط إرسال: سيظهر هذا الهاتف في أعلى القائمة.",
+  "usbDenied": "لم يُسمح بالوصول إلى USB. افصل الكابل، ثم أعد توصيله واضغط سماح.",
+  "usbDetached": "فُصل الكابل. أعد توصيله وسيُكمل النقل من حيث توقف.",
+  "usbDeviceName": "USB: {name}",
+  "@usbDeviceName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "usbError": "فشل الاتصال عبر الكابل. افصله ثم أعد توصيله.",
+  "usbNoLink": "لم يتعرّف الهاتفان على بعضهما عبر الكابل. يجب أن يعمل أحدهما كمضيف USB (OTG): جرّب قلب الكابل، أو كابل USB-C آخر، أو محوّل OTG على الهاتف الجديد. أو استخدم \"لا توجد شبكة Wi-Fi\".",
+  "usbPermission": "اضغط سماح على هذا الهاتف ليتمكن HK Cloner من استخدام الكابل.",
+  "usbSwitching": "اقتربنا. على الهاتف الآخر، اضغط موافق لفتح HK Cloner، ثم سماح.",
+  "usbUnsupported": "الجهاز الموصول بالكابل لا يدعم النقل بين الهواتف. يعمل خيار \"لا توجد شبكة Wi-Fi\" دون كابل أو راوتر.",
+  "useNoWifiMode": "استخدم \"لا توجد شبكة Wi-Fi\"",
+  "versionLabel": "الإصدار {version}",
+  "@versionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "waitingForPhone": "في انتظار هاتف",
+  "wallpaperFailed": "تعذّر تعيين خلفية الشاشة: {error}",
+  "@wallpaperFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "wallpaperNeedsAllFiles": "لا يشارك أندرويد خلفية الشاشة إلا مع التطبيقات التي لديها إذن الوصول إلى جميع الملفات.",
+  "wallpaperSet": "تم تعيين خلفية الشاشة",
+  "wallpaperSetHint": "أصبحت الشاشة الرئيسية وشاشة القفل مطابقتين لهاتفك القديم.",
+  "wantsToSend": "يريد {name} الإرسال",
+  "@wantsToSend": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsappBackupSteps": "في واتساب: الإعدادات > الدردشات > النسخ الاحتياطي للدردشات > نسخ احتياطي. ثم عُد إلى هنا.",
+  "whatsappGoesToFolder": "تُحفظ ملفات واتساب في المجلد الذي يستخدمه واتساب على إصدار أندرويد هذا.",
+  "whatsappNeedsGrant": "يحتاج أندرويد 11 وما بعده إلى موافقتك لقراءة هذا المجلد.",
+  "whatsappRestoreSteps": "1. ثبّته من متجر Play (إن كان مثبتًا، أزِل تثبيته ثم ثبّته من جديد).\n2. أكّد رقم الهاتف نفسه.\n3. اضغط \"استعادة\" عندما يعثر على النسخة الاحتياطية المحلية.",
+  "whereBackupsGo": "أين تريد حفظ النسخ الاحتياطية؟"
+}

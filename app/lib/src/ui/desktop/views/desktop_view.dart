@@ -2,6 +2,7 @@ import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../l10n.dart';
 import '../../../services/format.dart';
 import '../../theme.dart';
 import '../../widgets/credits.dart';
@@ -97,6 +98,7 @@ class DesktopHomeView extends StatelessWidget {
     this.nearby = const [],
     this.history = const [],
     this.appVersion = '',
+    this.language = 'ar',
     this.live,
     this.onSection,
     this.onChangeFolder,
@@ -106,6 +108,7 @@ class DesktopHomeView extends StatelessWidget {
     this.onOpenFolder,
     this.onPreview,
     this.onDelete,
+    this.onLanguage,
   });
 
   final String hostName;
@@ -118,6 +121,9 @@ class DesktopHomeView extends StatelessWidget {
   final List<NearbyDeviceData> nearby;
   final List<HistoryEntry> history;
   final String appVersion;
+
+  /// `ar` or `en`.
+  final String language;
   final LiveTransferData? live;
   final void Function(DesktopSection)? onSection;
   final VoidCallback? onChangeFolder;
@@ -127,6 +133,7 @@ class DesktopHomeView extends StatelessWidget {
   final void Function(BackupCardData)? onOpenFolder;
   final void Function(BackupCardData)? onPreview;
   final void Function(BackupCardData)? onDelete;
+  final ValueChanged<String>? onLanguage;
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +172,7 @@ class DesktopHomeView extends StatelessWidget {
             ],
           ),
         ),
-        _StatusPill(text: 'Ready · ${addresses.isEmpty ? hostName : addresses.first}'),
+        _StatusPill(text: S.of(context).readyAt(addresses.isEmpty ? hostName : ltr(addresses.first))),
       ],
     );
   }
@@ -179,7 +186,7 @@ class DesktopHomeView extends StatelessWidget {
   );
 
   List<Widget> _overview(BuildContext context) => [
-    _header(context, 'Backup station', 'Phones on this network or plugged in by USB can back up here.'),
+    _header(context, S.of(context).backupStation, S.of(context).backupStationHint),
     const SizedBox(height: 28),
     LayoutBuilder(builder: (context, c) {
       if (c.maxWidth < 1000) {
@@ -206,7 +213,7 @@ class DesktopHomeView extends StatelessWidget {
   ];
 
   List<Widget> _backupsPanel(BuildContext context) => [
-    _header(context, 'Backups', 'Every phone backed up to this computer.'),
+    _header(context, S.of(context).backups, S.of(context).backupsHint),
     const SizedBox(height: 14),
     ..._backupGrid(context),
   ];
@@ -218,14 +225,18 @@ class DesktopHomeView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(4, 14, 4, 14),
         child: Row(
           children: [
-            Text('Device backups', style: t.titleLarge),
+            Text(S.of(context).deviceBackups, style: t.titleLarge),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(backupFolder,
+              child: Text(ltr(backupFolder),
                   style: t.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   overflow: TextOverflow.ellipsis),
             ),
-            TextButton.icon(onPressed: onChangeFolder, icon: const Icon(Icons.folder_open_rounded), label: const Text('Change folder')),
+            TextButton.icon(
+              onPressed: onChangeFolder,
+              icon: const Icon(Icons.folder_open_rounded),
+              label: Text(S.of(context).changeFolder),
+            ),
           ],
         ),
       ),
@@ -233,7 +244,7 @@ class DesktopHomeView extends StatelessWidget {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Center(child: Text('No backups yet. Open HK Cloner on a phone and tap "Back up to computer".',
+            child: Center(child: Text(S.of(context).noBackupsYet,
                 style: t.bodyMedium)),
           ),
         )
@@ -263,18 +274,18 @@ class DesktopHomeView extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return [
-      _header(context, 'Devices', 'Phones plugged in by USB or running HK Cloner on this network.'),
+      _header(context, S.of(context).devices, S.of(context).devicesHint),
       const SizedBox(height: 28),
       _connectCard(),
       Padding(
         padding: const EdgeInsets.fromLTRB(4, 32, 4, 14),
-        child: Text('Nearby on Wi-Fi', style: t.titleLarge),
+        child: Text(S.of(context).nearbyOnWifi, style: t.titleLarge),
       ),
       Card(
         child: nearby.isEmpty
             ? Padding(
                 padding: const EdgeInsets.all(32),
-                child: Center(child: Text('No phones found yet. Open HK Cloner on a phone on the same network.',
+                child: Center(child: Text(S.of(context).noPhonesFound,
                     style: t.bodyMedium?.copyWith(color: muted))),
               )
             : Column(children: [
@@ -282,7 +293,7 @@ class DesktopHomeView extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.wifi_rounded),
                     title: Text(d.name),
-                    subtitle: Text(d.address),
+                    subtitle: Text(ltr(d.address)),
                   ),
               ]),
       ),
@@ -293,13 +304,13 @@ class DesktopHomeView extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return [
-      _header(context, 'History', 'Recent backups, newest first.'),
+      _header(context, S.of(context).history, S.of(context).historyHint),
       const SizedBox(height: 28),
       Card(
         child: history.isEmpty
             ? Padding(
                 padding: const EdgeInsets.all(32),
-                child: Center(child: Text('Nothing backed up yet.', style: t.bodyMedium?.copyWith(color: muted))),
+                child: Center(child: Text(S.of(context).nothingBackedUp, style: t.bodyMedium?.copyWith(color: muted))),
               )
             : Column(children: [
                 for (final h in history)
@@ -316,19 +327,33 @@ class DesktopHomeView extends StatelessWidget {
 
   List<Widget> _settingsPanel(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final s = S.of(context);
     return [
-      _header(context, 'Settings', 'Where backups are kept, and about this app.'),
+      _header(context, s.settings, s.desktopSettingsHint),
       const SizedBox(height: 28),
       Card(
         child: Column(children: [
           ListTile(
+            leading: const Icon(Icons.translate_rounded),
+            title: Text(s.sectionLanguage),
+            trailing: SegmentedButton<String>(
+              // Each language in its own script, so either reader finds theirs.
+              segments: const [
+                ButtonSegment(value: 'ar', label: Text('العربية')),
+                ButtonSegment(value: 'en', label: Text('English')),
+              ],
+              selected: {language},
+              onSelectionChanged: onLanguage == null ? null : (v) => onLanguage!(v.single),
+            ),
+          ),
+          ListTile(
             leading: const Icon(Icons.folder_rounded),
-            title: const Text('Backup folder'),
-            subtitle: Text(backupFolder.isEmpty ? '-' : backupFolder),
+            title: Text(s.backupFolder),
+            subtitle: Text(backupFolder.isEmpty ? '-' : ltr(backupFolder)),
             trailing: TextButton.icon(
               onPressed: onChangeFolder,
               icon: const Icon(Icons.folder_open_rounded),
-              label: const Text('Change folder'),
+              label: Text(s.changeFolder),
             ),
           ),
         ]),
@@ -339,23 +364,23 @@ class DesktopHomeView extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.info_outline_rounded),
             title: const Text('HK Cloner'),
-            subtitle: Text(appVersion.isEmpty ? 'Desktop backup station' : 'Version $appVersion'),
+            subtitle: Text(appVersion.isEmpty ? s.desktopBackupStation : s.versionLabel(ltr(appVersion))),
           ),
           ListTile(
             leading: const Icon(Icons.computer_rounded),
-            title: const Text('This computer'),
-            subtitle: Text([hostName, ...addresses].join(' · ')),
+            title: Text(s.thisComputer),
+            subtitle: Text([hostName, ...addresses.map(ltr)].join(' · ')),
           ),
           ListTile(
             leading: const Icon(Icons.lock_rounded),
-            title: const Text('Encryption'),
-            subtitle: Text('Transfers are end-to-end encrypted on your local network.', style: TextStyle(color: muted)),
+            title: Text(s.encryption),
+            subtitle: Text(s.encryptionHint, style: TextStyle(color: muted)),
           ),
         ]),
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(4, 32, 4, 14),
-        child: Text('About', style: Theme.of(context).textTheme.titleLarge),
+        child: Text(s.sectionAbout, style: Theme.of(context).textTheme.titleLarge),
       ),
       Card(
         child: Padding(
@@ -370,7 +395,7 @@ class DesktopHomeView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('HK Cloner', style: Theme.of(context).textTheme.titleMedium),
-                    Text('Coded and designed by $authorName', style: TextStyle(color: muted)),
+                    Text(s.codedAndDesignedBy, style: TextStyle(color: muted)),
                     const SizedBox(height: 8),
                     const Credits(),
                   ],
@@ -428,21 +453,21 @@ class _Sidebar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // The logo and name sit in the title bar above.
-          item(Icons.space_dashboard_rounded, 'Overview', DesktopSection.overview),
-          item(Icons.inventory_2_outlined, 'Backups', DesktopSection.backups),
-          item(Icons.devices_other_rounded, 'Devices', DesktopSection.devices),
-          item(Icons.history_rounded, 'History', DesktopSection.history),
+          item(Icons.space_dashboard_rounded, S.of(context).overview, DesktopSection.overview),
+          item(Icons.inventory_2_outlined, S.of(context).backups, DesktopSection.backups),
+          item(Icons.devices_other_rounded, S.of(context).devices, DesktopSection.devices),
+          item(Icons.history_rounded, S.of(context).history, DesktopSection.history),
           const Spacer(),
-          item(Icons.settings_outlined, 'Settings', DesktopSection.settings),
+          item(Icons.settings_outlined, S.of(context).settings, DesktopSection.settings),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(16)),
-            child: const Row(children: [
-              Icon(Icons.lock_rounded, color: AppColors.teal, size: 18),
-              SizedBox(width: 10),
-              Expanded(child: Text('End-to-end encrypted on your local network',
-                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.3))),
+            child: Row(children: [
+              const Icon(Icons.lock_rounded, color: AppColors.teal, size: 18),
+              const SizedBox(width: 10),
+              Expanded(child: Text(S.of(context).sidebarEncrypted,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.3))),
             ]),
           ),
         ],
@@ -506,25 +531,25 @@ class _ConnectCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Connect a phone', style: t.titleLarge?.copyWith(color: Colors.white)),
+            Text(S.of(context).connectAPhone, style: t.titleLarge?.copyWith(color: Colors.white)),
             const SizedBox(height: 6),
-            Text('Wireless: scan the code with HK Cloner, or pick "$hostName" from the list on the phone.',
+            Text(S.of(context).connectWireless(hostName),
                 style: t.bodyMedium?.copyWith(color: Colors.white70, height: 1.4)),
             const SizedBox(height: 18),
             Row(children: [
               const Icon(Icons.usb_rounded, size: 18),
               const SizedBox(width: 8),
-              Expanded(child: Text('USB cable', style: t.titleSmall?.copyWith(color: Colors.white), overflow: TextOverflow.ellipsis)),
-              IconButton(onPressed: onAdbRefresh, color: Colors.white, icon: const Icon(Icons.refresh_rounded, size: 20), tooltip: 'Look for phones'),
+              Expanded(child: Text(S.of(context).usbCable, style: t.titleSmall?.copyWith(color: Colors.white), overflow: TextOverflow.ellipsis)),
+              IconButton(onPressed: onAdbRefresh, color: Colors.white, icon: const Icon(Icons.refresh_rounded, size: 20), tooltip: S.of(context).lookForPhones),
             ]),
             const SizedBox(height: 6),
             if (adbDevices.isEmpty)
-              Text('Plug in a phone with USB debugging on. HK Cloner installs and opens on it by itself.', style: t.bodySmall?.copyWith(color: Colors.white60))
+              Text(S.of(context).plugInPhone, style: t.bodySmall?.copyWith(color: Colors.white60))
             else
               for (final d in adbDevices)
                 Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+                  padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 6, 6),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
                   child: Row(children: [
                     const Icon(Icons.smartphone_rounded, size: 18),
@@ -549,9 +574,10 @@ class _ConnectCard extends StatelessWidget {
                             ),
                           )
                         : d.connected
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            child: Text('Linked', style: TextStyle(color: Color(0xFF99F6E4), fontWeight: FontWeight.w700)),
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            child: Text(S.of(context).linked,
+                                style: const TextStyle(color: Color(0xFF99F6E4), fontWeight: FontWeight.w700)),
                           )
                         : FilledButton(
                             style: FilledButton.styleFrom(
@@ -560,7 +586,7 @@ class _ConnectCard extends StatelessWidget {
                               foregroundColor: AppColors.indigo,
                             ),
                             onPressed: () => onAdbConnect?.call(d.serial),
-                            child: const Text('Retry'),
+                            child: Text(S.of(context).retry),
                           ),
                   ]),
                 ),
@@ -605,9 +631,9 @@ class _LiveCard extends StatelessWidget {
                 children: [
                   const IconBadge(Icons.cloud_done_outlined, size: 56, color: AppColors.teal),
                   const SizedBox(height: 14),
-                  Text('Waiting for a phone', style: t.titleMedium),
+                  Text(S.of(context).waitingForPhone, style: t.titleMedium),
                   const SizedBox(height: 4),
-                  Text('Transfers show up here live.', style: t.bodySmall?.copyWith(color: muted)),
+                  Text(S.of(context).transfersShowLive, style: t.bodySmall?.copyWith(color: muted)),
                 ],
               )
             : Row(
@@ -617,7 +643,7 @@ class _LiveCard extends StatelessWidget {
                     size: 150,
                     stroke: 13,
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text('${(l.fraction * 100).round()}%', style: t.headlineMedium),
+                      Text(ltr('${(l.fraction * 100).round()}%'), style: t.headlineMedium),
                       Text(formatSpeed(l.bytesPerSecond), style: t.labelLarge?.copyWith(color: AppColors.indigo)),
                     ]),
                   ),
@@ -627,15 +653,15 @@ class _LiveCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Backing up', style: t.labelMedium?.copyWith(color: muted, letterSpacing: 1)),
+                        Text(S.of(context).backingUp, style: t.labelMedium?.copyWith(color: muted, letterSpacing: 1)),
                         const SizedBox(height: 2),
                         Text(l.peer, style: t.titleLarge),
                         const SizedBox(height: 12),
-                        _kv(context, 'Copied', '${formatBytes(l.doneBytes)} of ${formatBytes(l.totalBytes)}'),
-                        _kv(context, 'Files', '${l.doneFiles} of ${l.totalFiles}'),
-                        _kv(context, 'Time left', l.eta == null ? '-' : formatDuration(l.eta!)),
+                        _kv(context, S.of(context).copied, S.of(context).sizeOfSize(formatBytes(l.doneBytes), formatBytes(l.totalBytes))),
+                        _kv(context, S.of(context).categoryFiles, S.of(context).sizeOfSize(ltr('${l.doneFiles}'), ltr('${l.totalFiles}'))),
+                        _kv(context, S.of(context).timeLeft, l.eta == null ? '-' : formatDuration(l.eta!)),
                         const SizedBox(height: 10),
-                        BatteryPill(label: 'Phone', status: l.peerStatus),
+                        BatteryPill(label: S.of(context).phone, status: l.peerStatus),
                       ],
                     ),
                   ),
@@ -727,14 +753,14 @@ class _BackupCard extends StatelessWidget {
                     IconButton(
                       onPressed: () => onDelete?.call(data),
                       icon: const Icon(Icons.delete_outline_rounded),
-                      tooltip: 'Delete backup',
+                      tooltip: S.of(context).deleteBackup,
                     ),
-                    TextButton(onPressed: () => onOpen?.call(data), child: const Text('Open')),
+                    TextButton(onPressed: () => onOpen?.call(data), child: Text(S.of(context).open)),
                     const SizedBox(width: 4),
                     FilledButton.tonal(
                       style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                       onPressed: () => onRestore?.call(data),
-                      child: const Text('Restore'),
+                      child: Text(S.of(context).restore),
                     ),
                   ]),
                 ],

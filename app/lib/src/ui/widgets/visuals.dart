@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../theme.dart';
 
 /// Gradient surface with soft decorative orbs, used for hero areas.
@@ -21,8 +22,8 @@ class HeroSurface extends StatelessWidget {
         decoration: const BoxDecoration(gradient: AppColors.heroGradient),
         child: Stack(
           children: [
-            const Positioned(right: -60, top: -70, child: _Orb(size: 220, opacity: 0.16)),
-            const Positioned(left: -40, bottom: -80, child: _Orb(size: 180, opacity: 0.10)),
+            const PositionedDirectional(end: -60, top: -70, child: _Orb(size: 220, opacity: 0.16)),
+            const PositionedDirectional(start: -40, bottom: -80, child: _Orb(size: 180, opacity: 0.10)),
             Padding(
               padding: padding,
               child: DefaultTextStyle.merge(
@@ -169,7 +170,13 @@ class BatteryPill extends StatelessWidget {
             color: status!.charging == true ? AppColors.teal : fg,
           ),
           const SizedBox(width: 6),
-          Text('$label  $level%', style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 13)),
+          Flexible(
+            child: Text(
+              '$label  ${ltr('$level%')}',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );

@@ -30,7 +30,7 @@ class TransferService : Service() {
                 return START_NOT_STICKY
             }
             else -> {
-                val title = intent?.getStringExtra(EXTRA_TITLE) ?: "Transferring"
+                val title = intent?.getStringExtra(EXTRA_TITLE) ?: getString(R.string.notification_transferring)
                 val text = intent?.getStringExtra(EXTRA_TEXT) ?: ""
                 val progress = intent?.getIntExtra(EXTRA_PROGRESS, -1) ?: -1
                 val notification = build(this, title, text, progress)
@@ -85,10 +85,10 @@ class TransferService : Service() {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Transfers", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL_ID, context.getString(R.string.channel_transfers), NotificationManager.IMPORTANCE_LOW),
             )
             nm.createNotificationChannel(
-                NotificationChannel(ALERT_CHANNEL_ID, "Warnings", NotificationManager.IMPORTANCE_HIGH),
+                NotificationChannel(ALERT_CHANNEL_ID, context.getString(R.string.channel_warnings), NotificationManager.IMPORTANCE_HIGH),
             )
         }
 

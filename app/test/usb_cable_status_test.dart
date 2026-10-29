@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_cloner/src/platform/usb_link.dart';
+import 'package:mobile_cloner/src/services/app_settings.dart';
 import 'package:mobile_cloner/src/ui/widgets/usb_cable_status.dart';
 
 void main() {
   test('every cable state has a message; dead ends offer the hotspot', () {
+    AppSettings.instance.language = 'en';
     for (final s in UsbLinkState.values) {
       expect(usbCableMessage(s).text, isNotEmpty, reason: s.name);
     }
@@ -13,5 +15,8 @@ void main() {
     expect(usbCableMessage(UsbLinkState.unsupported).suggestHotspot, isTrue);
     expect(usbCableMessage(UsbLinkState.connected).suggestHotspot, isFalse);
     expect(usbCableMessage(UsbLinkState.permission).text, contains('Allow'));
+
+    AppSettings.instance.language = 'ar';
+    expect(usbCableMessage(UsbLinkState.permission).text, contains('سماح'));
   });
 }

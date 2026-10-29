@@ -6,6 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n.dart';
+import '../../services/app_settings.dart';
 import '../../services/cloner_service.dart';
 import '../../services/format.dart';
 import '../widgets/labels.dart';
@@ -94,7 +96,7 @@ class _DesktopHomeState extends State<DesktopHome> {
     _linked.removeWhere((s) => !present.contains(s));
     _adbStatus.removeWhere((s, _) => !present.contains(s));
     for (final d in list) {
-      if (d.unauthorized) _adbStatus[d.serial] = 'Tap "Allow" on the phone to trust this computer';
+      if (d.unauthorized) _adbStatus[d.serial] = tr.adbTapAllow;
     }
     setState(() => _adbDevices = list);
     for (final d in list) {
@@ -113,23 +115,23 @@ class _DesktopHomeState extends State<DesktopHome> {
   Future<void> _link(String serial) async {
     setState(() {
       _adbBusy.add(serial);
-      _adbStatus[serial] = 'Checking for HK Cloner...';
+      _adbStatus[serial] = tr.adbChecking;
     });
     try {
       final app = await adb.appState(serial, androidPackage, versionCode: appVersionCode);
-      var status = 'Opened on the phone. Choose what to back up there.';
+      var status = tr.adbOpened;
       if (!app.ready) {
         final installed = await _promptInstall(serial, app);
         if (!mounted) return;
         if (installed) {
           status = app.missing
-              ? 'Installed and opened. Choose what to back up on the phone.'
-              : 'Updated and opened. Choose what to back up on the phone.';
+              ? tr.adbInstalledOpened
+              : tr.adbUpdatedOpened;
         } else if (app.missing) {
-          setState(() => _adbStatus[serial] = "HK Cloner isn't on the phone. Click Retry to install it.");
+          setState(() => _adbStatus[serial] = tr.adbMissingRetry);
           return;
         } else {
-          status = 'Opened the older HK Cloner on the phone. Click Retry to update it.';
+          status = tr.adbOlderOpened;
         }
       }
       await adb.openLinked(serial, package: androidPackage, activity: androidActivity);
@@ -139,7 +141,7 @@ class _DesktopHomeState extends State<DesktopHome> {
         _adbStatus[serial] = status;
       });
     } catch (e) {
-      if (mounted) setState(() => _adbStatus[serial] = 'Setup failed: ${_short(e)}');
+      if (mounted) setState(() => _adbStatus[serial] = tr.adbSetupFailed(_short(e)));
     } finally {
       if (mounted) setState(() => _adbBusy.remove(serial));
     }
@@ -149,7 +151,7 @@ class _DesktopHomeState extends State<DesktopHome> {
   Future<bool> _promptInstall(String serial, PhoneApp app) async {
     if (_prompting || !mounted) return false;
     _prompting = true;
-    setState(() => _adbStatus[serial] = app.missing ? "HK Cloner isn't on the phone" : 'HK Cloner is out of date');
+    setState(() => _adbStatus[serial] = app.missing ? tr.adbMissing : tr.adbOutdated);
     try {
       final ok = await showDialog<bool>(
         context: context,
@@ -163,7 +165,7 @@ class _DesktopHomeState extends State<DesktopHome> {
           uninstall: () => adb.uninstall(serial, androidPackage),
           pickApk: () async {
             final r = await FilePicker.pickFiles(
-              dialogTitle: 'Choose the HK Cloner APK',
+              dialogTitle: tr.chooseApkDialogTitle,
               type: FileType.custom,
               allowedExtensions: const ['apk'],
             );
@@ -190,7 +192,7 @@ class _DesktopHomeState extends State<DesktopHome> {
   }
 
   Future<void> _changeFolder() async {
-    final dir = await FilePicker.getDirectoryPath(dialogTitle: 'Where should backups go?');
+    final dir = await FilePicker.getDirectoryPath(dialogTitle: tr.whereBackupsGo);
     if (dir == null) return;
     await service.setBackupRoot(dir);
     setState(() => _folder = dir);
@@ -204,16 +206,16 @@ class _DesktopHomeState extends State<DesktopHome> {
     final choice = await showDialog<Object>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Restore to which phone?'),
+        title: Text(tr.restoreToWhichPhone),
         children: [
           for (final d in targets)
-            SimpleDialogOption(onPressed: () => Navigator.pop(context, d), child: Text('${d.info.alias}  ·  ${d.ip}')),
+            SimpleDialogOption(onPressed: () => Navigator.pop(context, d), child: Text('${d.info.alias}  ·  ${ltr(d.ip)}')),
           for (final s in _linked)
-            SimpleDialogOption(onPressed: () => Navigator.pop(context, s), child: Text('USB: ${_nameOf(s)}')),
+            SimpleDialogOption(onPressed: () => Navigator.pop(context, s), child: Text(tr.usbDeviceName(_nameOf(s)))),
           if (targets.isEmpty && _linked.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Open HK Cloner on the phone and tap "Restore from computer", or link it by USB.'),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(tr.restoreNoPhone),
             ),
         ],
       ),
@@ -233,7 +235,7 @@ class _DesktopHomeState extends State<DesktopHome> {
 
   void _afterRestore() {
     if (service.sendState == SendState.done) {
-      _snack('Restore complete.');
+      _snack(tr.restoreComplete);
     } else {
       _offerResume();
     }
@@ -249,16 +251,16 @@ class _DesktopHomeState extends State<DesktopHome> {
     m.showMaterialBanner(
       MaterialBanner(
         leading: const Icon(Icons.pause_circle_outline_rounded),
-        content: Text('Restore to ${cp.peerAlias} stopped at ${cp.doneFiles} of ${cp.totalFiles} files. '
+        content: Text('${tr.restoreStopped(cp.peerAlias, cp.doneFiles, cp.totalFiles)} '
             '${service.interruptText(cp.interruptReason)}'),
         actions: [
-          TextButton(onPressed: () => _resumeRestore(dir), child: const Text('Resume')),
+          TextButton(onPressed: () => _resumeRestore(dir), child: Text(tr.resume)),
           TextButton(
             onPressed: () {
               m.clearMaterialBanners();
               service.discardCheckpoint();
             },
-            child: const Text('Discard'),
+            child: Text(tr.discard),
           ),
         ],
       ),
@@ -275,7 +277,7 @@ class _DesktopHomeState extends State<DesktopHome> {
       await service.resume(target: target, files: await BackupStore.filesToRestore(dir));
       _afterRestore();
     } catch (e) {
-      _snack('Could not reach ${cp.peerAlias}: $e');
+      _snack(tr.couldNotReach(cp.peerAlias, '$e'));
       _offerResume();
     }
   }
@@ -297,7 +299,7 @@ class _DesktopHomeState extends State<DesktopHome> {
     final when = m.lastBackup.toLocal();
     return BackupCardData(
       alias: m.alias,
-      subtitle: [if (m.sdkInt != null) 'Android API ${m.sdkInt}', if (m.deviceModel != null) m.deviceModel!].join(' · '),
+      subtitle: [if (m.sdkInt != null) tr.androidApi(m.sdkInt!), if (m.deviceModel != null) m.deviceModel!].join(' · '),
       lastBackup: _stamp(when),
       bytesByCategory: bytes,
       path: b.$1,
@@ -317,8 +319,8 @@ class _DesktopHomeState extends State<DesktopHome> {
         rows.add((
           at,
           HistoryEntry(
-            title: '${categoryLabel(ContentCategory.parse(e.key))} from ${m.alias}',
-            detail: '$files files · ${formatBytes(bytes)}',
+            title: tr.categoryFromDevice(categoryLabel(ContentCategory.parse(e.key)), m.alias),
+            detail: '${tr.filesCount(files)} · ${formatBytes(bytes)}',
             when: _stamp(at),
           ),
         ));
@@ -329,7 +331,7 @@ class _DesktopHomeState extends State<DesktopHome> {
   }
 
   static String _stamp(DateTime when) =>
-      '${when.year}-${_two(when.month)}-${_two(when.day)} ${_two(when.hour)}:${_two(when.minute)}';
+      ltr('${when.year}-${_two(when.month)}-${_two(when.day)} ${_two(when.hour)}:${_two(when.minute)}');
 
   static String _two(int v) => v.toString().padLeft(2, '0');
 
@@ -374,6 +376,8 @@ class _DesktopHomeState extends State<DesktopHome> {
           ],
           history: _history(),
           appVersion: '$appVersionName ($appVersionCode)',
+          language: AppSettings.instance.language,
+          onLanguage: AppSettings.instance.setLanguage,
           live: live,
           onSection: (s) => setState(() => _section = s),
           onChangeFolder: _changeFolder,
@@ -394,14 +398,14 @@ class _DesktopHomeState extends State<DesktopHome> {
       context: context,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.delete_outline_rounded),
-        title: Text('Delete the backup of ${b.alias}?'),
-        content: Text('This removes ${formatBytes(b.totalBytes)} from\n${b.path}\n\nThe phone itself is not touched.'),
+        title: Text(tr.deleteBackupTitle(b.alias)),
+        content: Text(tr.deleteBackupBody(formatBytes(b.totalBytes), ltr(b.path!))),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(tr.delete),
           ),
         ],
       ),
@@ -409,9 +413,9 @@ class _DesktopHomeState extends State<DesktopHome> {
     if (ok != true) return;
     try {
       await BackupStore(await service.backupRoot()).deleteBackup(b.path!);
-      _snack('Deleted the backup of ${b.alias}.');
+      _snack(tr.deletedBackup(b.alias));
     } catch (e) {
-      _snack('Could not delete: ${_short(e)}');
+      _snack(tr.couldNotDelete(_short(e)));
     }
     await _loadBackups();
   }
@@ -448,8 +452,8 @@ class _DesktopHomeState extends State<DesktopHome> {
                   Text(
                     [
                       if (m.deviceModel != null) m.deviceModel!,
-                      if (m.sdkInt != null) 'Android API ${m.sdkInt}',
-                      'Last backup ${_stamp(m.lastBackup.toLocal())}',
+                      if (m.sdkInt != null) tr.androidApi(m.sdkInt!),
+                      tr.lastBackupAt(_stamp(m.lastBackup.toLocal())),
                     ].join(' · '),
                     style: t.bodyMedium?.copyWith(color: muted),
                   ),
@@ -461,14 +465,14 @@ class _DesktopHomeState extends State<DesktopHome> {
                         leading: Icon(categoryIcon(ContentCategory.parse(e.key))),
                         title: Text(categoryLabel(ContentCategory.parse(e.key))),
                         subtitle: Text([
-                          '${((e.value as Map)['files'] as num?)?.toInt() ?? 0} files',
+                          tr.filesCount(((e.value as Map)['files'] as num?)?.toInt() ?? 0),
                           formatBytes(((e.value as Map)['bytes'] as num?) ?? 0),
                           if (DateTime.tryParse('${(e.value as Map)['at']}') case final at?) _stamp(at.toLocal()),
                         ].join(' · ')),
                       ),
                   if (thumbs.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text('Photos', style: t.titleSmall),
+                    Text(tr.categoryPhotos, style: t.titleSmall),
                     const SizedBox(height: 8),
                     Wrap(spacing: 8, runSpacing: 8, children: [
                       for (final f in thumbs)
@@ -495,7 +499,7 @@ class _DesktopHomeState extends State<DesktopHome> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.close)),
           ],
         );
       },

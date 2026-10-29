@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../platform/android_bridge.dart';
 import '../../platform/usb_link.dart';
 import '../../restore/phone_receive_delegate.dart';
@@ -105,15 +106,15 @@ class _ReceivePageState extends State<ReceivePage> {
         try {
           final hs = await service.bridge.startLocalHotspot();
           if (hs == null) {
-            setState(() => _hint = 'Turn on the hotspot in Settings, connect the old phone to it, then scan.');
+            setState(() => _hint = S.of(context).hotspotUseSettings);
             await service.bridge.openTetherSettings();
           } else {
-            setState(() => _hint = 'Hotspot "${hs.ssid}" is on. The QR code joins it automatically.');
+            setState(() => _hint = S.of(context).hotspotOn(hs.ssid));
           }
           await Future<void>.delayed(const Duration(seconds: 1));
           await _refreshPairing(ssid: hs?.ssid, password: hs?.password);
         } catch (e) {
-          setState(() => _hint = 'Could not start the hotspot ($e). Use the Settings hotspot instead.');
+          setState(() => _hint = S.of(context).hotspotFailed('$e'));
         }
       case ConnectionMode.usbTethering:
         await _cableMode();
@@ -158,7 +159,7 @@ class _ReceivePageState extends State<ReceivePage> {
         if (s != null && s.state == SessionState.active) {
           final done = s.files.values.where((f) => f.state == FileState.done).length;
           return TransferView(
-            title: 'Receiving from ${s.sender.info.alias}',
+            title: S.of(context).receivingFrom(s.sender.info.alias),
             peerName: s.sender.info.alias,
             fraction: s.totalBytes == 0 ? 0 : s.receivedBytes / s.totalBytes,
             doneBytes: s.receivedBytes,
@@ -181,7 +182,7 @@ class _ReceivePageState extends State<ReceivePage> {
           onMode: _setMode,
           modeHint: _hint,
           notice: const DiscoveryAccessCard(),
-          modeActionLabel: _suggestHotspot ? 'Use "No Wi-Fi around"' : null,
+          modeActionLabel: _suggestHotspot ? S.of(context).useNoWifiMode : null,
           onModeAction: _suggestHotspot ? () => _setMode(ConnectionMode.hotspot) : null,
           needsWhatsAppAccess: _needsWhatsApp,
           onGrantWhatsApp: _grantWhatsApp,
@@ -211,8 +212,9 @@ class _ReportView extends StatelessWidget {
     final s = report.session;
     final ok = s.files.values.where((f) => f.state == FileState.done).length;
     final service = ClonerService.instance;
+    final l = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Transfer complete')),
+      appBar: AppBar(title: Text(l.transferComplete)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         children: [
@@ -220,12 +222,12 @@ class _ReportView extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Icon(Icons.check_circle_rounded, size: 40),
               const SizedBox(height: 12),
-              Text('$ok of ${s.files.length} items moved', style: t.headlineSmall?.copyWith(color: Colors.white)),
-              Text('from ${s.sender.info.alias}', style: t.bodyMedium?.copyWith(color: Colors.white70)),
+              Text(l.itemsMoved(ok, s.files.length), style: t.headlineSmall?.copyWith(color: Colors.white)),
+              Text(l.fromName(s.sender.info.alias), style: t.bodyMedium?.copyWith(color: Colors.white70)),
             ]),
           ),
           if (report.whatsApp.isNotEmpty) ...[
-            const SectionLabel('Finish WhatsApp'),
+            SectionLabel(l.finishWhatsapp),
             for (final v in report.whatsApp)
               Card(
                 child: Padding(
@@ -237,35 +239,33 @@ class _ReportView extends StatelessWidget {
                       Text(v.folderName, style: t.titleMedium),
                     ]),
                     const SizedBox(height: 12),
-                    const Text('1. Install it from the Play Store (if it is installed already, uninstall and reinstall it).\n'
-                        '2. Verify the same phone number.\n'
-                        '3. Tap "Restore" when it finds the local backup.'),
+                    Text(l.whatsappRestoreSteps),
                     const SizedBox(height: 12),
                     OutlinedButton(
                       onPressed: () => service.bridge.launchPackage(v.packageName),
-                      child: const Text('Open WhatsApp'),
+                      child: Text(l.openWhatsapp),
                     ),
                   ]),
                 ),
               ),
           ],
           if (report.contactsFiles > 0) ...[
-            const SectionLabel('Contacts'),
+            SectionLabel(l.categoryContacts),
             Card(
               child: ListTile(
                 leading: const IconBadge(Icons.contacts_outlined, size: 40),
-                title: Text(report.contactsImportOpened ? 'Confirm the import in Contacts' : 'Contacts received'),
-                subtitle: const Text('Your Contacts app opened with the file. Pick where to save them.'),
+                title: Text(report.contactsImportOpened ? l.confirmContactsImport : l.contactsReceived),
+                subtitle: Text(l.contactsImportHint),
               ),
             ),
           ],
           if (report.wallpaperSet) ...[
-            const SectionLabel('Wallpaper'),
-            const Card(
+            SectionLabel(l.categoryWallpaper),
+            Card(
               child: ListTile(
-                leading: IconBadge(Icons.wallpaper_outlined, size: 40),
-                title: Text('Wallpaper set'),
-                subtitle: Text('The home and lock screens now match your old phone.'),
+                leading: const IconBadge(Icons.wallpaper_outlined, size: 40),
+                title: Text(l.wallpaperSet),
+                subtitle: Text(l.wallpaperSetHint),
               ),
             ),
           ],
@@ -277,7 +277,7 @@ class _ReportView extends StatelessWidget {
               service.lastReport = null;
               Navigator.pop(context);
             },
-            child: const Text('Done'),
+            child: Text(l.done),
           ),
         ],
       ),

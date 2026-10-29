@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android picks these by the phone's language; the app's own screens
+     follow the language chosen in HK Cloner (Arabic by default). -->
+<resources>
+    <string name="channel_transfers">عمليات النقل</string>
+    <string name="channel_warnings">التنبيهات</string>
+    <string name="notification_transferring">جارٍ النقل</string>
+</resources>

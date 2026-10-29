@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../platform/android_bridge.dart';
 import '../../services/app_settings.dart';
 import '../../services/cloner_service.dart';
@@ -42,20 +43,20 @@ class _SettingsPageState extends State<SettingsPage> {
   List<(IconData, String, String, List<String>)> get _wanted => [
     (
       Icons.radar_rounded,
-      _sdk >= 33 ? 'Nearby devices' : 'Location',
-      _sdk >= 33 ? 'Find the other phone on Wi-Fi and cable' : 'Find the other phone on Wi-Fi (never reads where you are)',
+      _sdk >= 33 ? tr.nearbyDevicesPermission : tr.locationPermission,
+      _sdk >= 33 ? tr.permNearbyPurpose : tr.permLocationPurpose,
       AndroidPermission.discovery(_sdk),
     ),
-    (Icons.photo_library_outlined, 'Photos and videos', 'Send and receive your gallery', AndroidPermission.media(_sdk)),
+    (Icons.photo_library_outlined, tr.permPhotos, tr.permPhotosPurpose, AndroidPermission.media(_sdk)),
     (
       Icons.contacts_outlined,
-      'Contacts',
-      'Send and receive contacts',
+      tr.categoryContacts,
+      tr.permContactsPurpose,
       [AndroidPermission.readContacts, AndroidPermission.writeContacts],
     ),
-    (Icons.qr_code_scanner_rounded, 'Camera', 'Scan the pairing QR code', [AndroidPermission.camera]),
+    (Icons.qr_code_scanner_rounded, tr.permCamera, tr.permCameraPurpose, [AndroidPermission.camera]),
     if (_sdk >= 33)
-      (Icons.notifications_outlined, 'Notifications', 'Show progress while a transfer runs', [AndroidPermission.notifications]),
+      (Icons.notifications_outlined, tr.permNotifications, tr.permNotificationsPurpose, [AndroidPermission.notifications]),
   ];
 
   Future<void> _load() async {
@@ -83,7 +84,7 @@ class _SettingsPageState extends State<SettingsPage> {
       : PermissionState.granted;
 
   Future<void> _grant(PermissionItem item) async {
-    if (item.title == _allFilesTitle) {
+    if (item.title == tr.permAllFiles) {
       await service.bridge.requestAllFilesAccess();
       return; // Android's page; re-read on resume.
     }
@@ -96,8 +97,6 @@ class _SettingsPageState extends State<SettingsPage> {
     await _load();
   }
 
-  static const _allFilesTitle = 'All files (WhatsApp)';
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -106,20 +105,22 @@ class _SettingsPageState extends State<SettingsPage> {
         deviceName: service.self.alias,
         defaultDeviceName: service.defaultDeviceName,
         themeMode: settings.themeMode,
+        language: settings.language,
         keepScreenOn: settings.keepScreenOn,
         permissions: [
           for (final r in _rows) r.$1,
           if (_sdk >= 30)
             PermissionItem(
               icon: Icons.chat_outlined,
-              title: _allFilesTitle,
-              purpose: 'Read and restore WhatsApp chats on Android 11 and newer',
+              title: tr.permAllFiles,
+              purpose: tr.permAllFilesPurpose,
               state: _allFiles ? PermissionState.granted : PermissionState.denied,
             ),
         ],
         version: '$appVersionName ($appVersionCode)',
         onRename: service.rename,
         onThemeMode: settings.setThemeMode,
+        onLanguage: settings.setLanguage,
         onKeepScreenOn: settings.setKeepScreenOn,
         onGrant: _grant,
         onOpenAppSettings: service.bridge.openAppSettings,

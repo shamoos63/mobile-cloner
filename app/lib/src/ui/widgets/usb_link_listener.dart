@@ -1,6 +1,7 @@
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../platform/android_bridge.dart';
 import '../../services/cloner_service.dart';
 import '../phone/select_page.dart';
@@ -54,7 +55,7 @@ class _UsbLinkListenerState extends State<UsbLinkListener> with WidgetsBindingOb
       if (!mounted) return;
       if (computer == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not reach the computer over USB. Unplug and plug the cable back in.')),
+          SnackBar(content: Text(S.of(context).usbComputerUnreachable)),
         );
         return;
       }

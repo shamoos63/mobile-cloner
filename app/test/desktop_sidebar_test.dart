@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_cloner/src/ui/desktop/views/desktop_view.dart';
 
+import 'l10n_helpers.dart';
+
 void main() {
   testWidgets('sidebar items switch the main panel', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
@@ -16,8 +18,8 @@ void main() {
 
     var section = DesktopSection.overview;
     await tester.pumpWidget(StatefulBuilder(
-      builder: (context, setState) => MaterialApp(
-        home: DesktopHomeView(
+      builder: (context, setState) => localized(
+        DesktopHomeView(
           hostName: 'mac',
           addresses: const [],
           pairing: null,

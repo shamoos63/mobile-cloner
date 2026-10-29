@@ -1,19 +1,21 @@
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
+
 String categoryLabel(ContentCategory c) => switch (c) {
-  ContentCategory.photos => 'Photos',
-  ContentCategory.videos => 'Videos',
-  ContentCategory.contacts => 'Contacts',
-  ContentCategory.whatsapp => 'WhatsApp',
-  ContentCategory.whatsappBusiness => 'WhatsApp Business',
-  ContentCategory.apps => 'Apps',
-  ContentCategory.messages => 'Messages',
-  ContentCategory.callLogs => 'Call logs',
-  ContentCategory.documents => 'Documents',
-  ContentCategory.audio => 'Music',
-  ContentCategory.wallpaper => 'Wallpaper',
-  ContentCategory.files => 'Files',
+  ContentCategory.photos => tr.categoryPhotos,
+  ContentCategory.videos => tr.categoryVideos,
+  ContentCategory.contacts => tr.categoryContacts,
+  ContentCategory.whatsapp => tr.categoryWhatsapp,
+  ContentCategory.whatsappBusiness => tr.categoryWhatsappBusiness,
+  ContentCategory.apps => tr.categoryApps,
+  ContentCategory.messages => tr.categoryMessages,
+  ContentCategory.callLogs => tr.categoryCallLogs,
+  ContentCategory.documents => tr.categoryDocuments,
+  ContentCategory.audio => tr.categoryAudio,
+  ContentCategory.wallpaper => tr.categoryWallpaper,
+  ContentCategory.files => tr.categoryFiles,
 };
 
 IconData categoryIcon(ContentCategory c) => switch (c) {

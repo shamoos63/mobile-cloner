@@ -10,6 +10,11 @@ class AppSettings extends ChangeNotifier {
   static const _deviceNameKey = 'deviceName';
   static const _themeKey = 'themeMode';
   static const _keepScreenOnKey = 'keepScreenOn';
+  static const _languageKey = 'language';
+
+  /// Languages the app speaks; Arabic is the default on first launch,
+  /// whatever the system language.
+  static const languages = ['ar', 'en'];
 
   /// Name other devices see; null uses the phone's model.
   String? deviceName;
@@ -19,11 +24,18 @@ class AppSettings extends ChangeNotifier {
   /// screen on, and some phones pause Wi-Fi when it goes off).
   bool keepScreenOn = true;
 
+  /// `ar` or `en`.
+  String language = 'ar';
+
+  bool get rtl => language == 'ar';
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     deviceName = prefs.getString(_deviceNameKey);
     themeMode = ThemeMode.values.asNameMap()[prefs.getString(_themeKey)] ?? ThemeMode.system;
     keepScreenOn = prefs.getBool(_keepScreenOnKey) ?? true;
+    final saved = prefs.getString(_languageKey);
+    language = languages.contains(saved) ? saved! : 'ar';
     notifyListeners();
   }
 
@@ -43,6 +55,13 @@ class AppSettings extends ChangeNotifier {
   Future<void> setThemeMode(ThemeMode mode) async {
     themeMode = mode;
     await (await SharedPreferences.getInstance()).setString(_themeKey, mode.name);
+    notifyListeners();
+  }
+
+  Future<void> setLanguage(String code) async {
+    if (!languages.contains(code)) return;
+    language = code;
+    await (await SharedPreferences.getInstance()).setString(_languageKey, code);
     notifyListeners();
   }
 

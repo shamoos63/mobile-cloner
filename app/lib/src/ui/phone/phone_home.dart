@@ -1,6 +1,7 @@
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../services/cloner_service.dart';
 import 'connect_page.dart';
 import 'receive_page.dart';
@@ -46,7 +47,7 @@ class _PhoneHomeState extends State<PhoneHome> {
         final cp = service.checkpoint;
         return PhoneHomeView(
           deviceName: service.self.alias,
-          osLabel: 'Android ${a.release}',
+          osLabel: S.of(context).androidVersion(a.release),
           myStatus: service.localStatus,
           resume: cp == null
               ? null
@@ -61,7 +62,7 @@ class _PhoneHomeState extends State<PhoneHome> {
               NearbyPeer(
                 name: d.info.alias,
                 isDesktop: d.info.deviceType == DeviceType.desktop,
-                subtitle: d.info.cloner?.sdkInt != null ? 'Android API ${d.info.cloner!.sdkInt}' : d.ip,
+                subtitle: d.info.cloner?.sdkInt != null ? S.of(context).androidApi(d.info.cloner!.sdkInt!) : d.ip,
               ),
           ],
           onSend: () => PhoneHome.startSend(context),

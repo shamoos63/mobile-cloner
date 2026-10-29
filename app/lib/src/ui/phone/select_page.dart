@@ -1,6 +1,7 @@
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n.dart';
 import '../../services/cloner_service.dart';
 import '../../sources/contacts_source.dart';
 import '../../sources/media_source.dart';
@@ -125,8 +126,8 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
     if (variant != null) {
       final scan = _wa[variant];
       if (scan?.access == WhatsAppAccess.needsGrant) {
-        warning = 'Android 11+ needs your OK to read this folder.';
-        action = 'Allow';
+        warning = S.of(context).whatsappNeedsGrant;
+        action = S.of(context).allow;
         onAction = () async {
           await whatsapp.grantFolder(variant);
           _scanWhatsApp(variant);
@@ -134,14 +135,14 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
       } else if (scan?.newestBackup != null) {
         final age = DateTime.now().difference(scan!.newestBackup!);
         if (age > const Duration(hours: 1)) {
-          warning = 'Last chat backup: ${age.inDays > 0 ? '${age.inDays} days' : '${age.inHours} h'} ago';
-          action = 'Back up now';
+          warning = age.inDays > 0 ? S.of(context).lastChatBackupDays(age.inDays) : S.of(context).lastChatBackupHours(age.inHours);
+          action = S.of(context).backUpNow;
           onAction = () async {
             await whatsapp.openForBackup(variant);
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('In WhatsApp: Settings > Chats > Chat backup > Back up. Then come back here.'),
-                duration: Duration(seconds: 8),
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(S.of(context).whatsappBackupSteps),
+                duration: const Duration(seconds: 8),
               ));
             }
           };
@@ -149,15 +150,15 @@ class _SelectPageState extends State<SelectPage> with WidgetsBindingObserver {
       }
     }
     if (c == ContentCategory.wallpaper && _wallpaperDenied) {
-      warning = 'Android only shares the wallpaper with apps that have All-files access.';
-      action = 'Allow';
+      warning = S.of(context).wallpaperNeedsAllFiles;
+      action = S.of(context).allow;
       onAction = service.bridge.requestAllFilesAccess;
     }
     return SelectableItem(
       category: c,
       selected: _selected.contains(c),
       count: _counts[c],
-      note: variant != null && !_wa.containsKey(variant) && !_loading.contains(c) ? 'Tick to scan' : null,
+      note: variant != null && !_wa.containsKey(variant) && !_loading.contains(c) ? S.of(context).tickToScan : null,
       bytes: c == ContentCategory.contacts ? null : files.fold<int>(0, (a, f) => a + f.dto.size),
       loading: _loading.contains(c),
       warning: warning,

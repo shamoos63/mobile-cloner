@@ -1,6 +1,7 @@
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n.dart';
 import '../../theme.dart';
 import '../../widgets/credits.dart';
 import '../../widgets/visuals.dart';
@@ -54,6 +55,7 @@ class PhoneHomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = S.of(context);
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -65,7 +67,7 @@ class PhoneHomeView extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text('HK Cloner', style: t.titleLarge),
                 const Spacer(),
-                IconButton(onPressed: onSettings, tooltip: 'Settings', icon: const Icon(Icons.settings_outlined)),
+                IconButton(onPressed: onSettings, tooltip: s.settings, icon: const Icon(Icons.settings_outlined)),
               ],
             ),
             const SizedBox(height: 16),
@@ -73,10 +75,10 @@ class PhoneHomeView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Move everything\nto your new phone', style: t.headlineMedium?.copyWith(color: Colors.white, height: 1.15)),
+                  Text(s.homeHeadline, style: t.headlineMedium?.copyWith(color: Colors.white, height: 1.15)),
                   const SizedBox(height: 10),
                   Text(
-                    'Photos, videos, contacts and WhatsApp chats. Over Wi-Fi, hotspot or cable, and it picks up where it left off.',
+                    s.homeIntro,
                     style: t.bodyMedium?.copyWith(color: Colors.white70, height: 1.4),
                   ),
                   const SizedBox(height: 20),
@@ -85,7 +87,7 @@ class PhoneHomeView extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       _HeroTag(icon: Icons.smartphone_rounded, text: '$deviceName · $osLabel'),
-                      BatteryPill(label: 'Battery', status: myStatus, onDark: true),
+                      BatteryPill(label: s.battery, status: myStatus, onDark: true),
                     ],
                   ),
                 ],
@@ -95,40 +97,40 @@ class PhoneHomeView extends StatelessWidget {
               const SizedBox(height: 16),
               _ResumeCard(info: resume!, onResume: onResume, onDiscard: onDiscardResume),
             ],
-            const SectionLabel('Phone to phone'),
+            SectionLabel(s.sectionPhoneToPhone),
             Row(
               children: [
                 Expanded(child: _BigAction(
                   icon: Icons.north_east_rounded,
                   color: AppColors.indigo,
-                  title: 'Send',
-                  subtitle: 'This is my old phone',
+                  title: s.send,
+                  subtitle: s.sendSubtitle,
                   onTap: onSend,
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: _BigAction(
                   icon: Icons.south_west_rounded,
                   color: AppColors.teal,
-                  title: 'Receive',
-                  subtitle: 'This is my new phone',
+                  title: s.receive,
+                  subtitle: s.receiveSubtitle,
                   onTap: onReceive,
                 )),
               ],
             ),
-            const SectionLabel('Computer'),
+            SectionLabel(s.sectionComputer),
             Card(
               child: Column(
                 children: [
-                  _ListAction(icon: Icons.cloud_upload_outlined, color: AppColors.violet, title: 'Back up to computer',
-                      subtitle: 'Incremental, only new files are copied', onTap: onBackup),
+                  _ListAction(icon: Icons.cloud_upload_outlined, color: AppColors.violet, title: s.backupToComputer,
+                      subtitle: s.backupToComputerSubtitle, onTap: onBackup),
                   const Divider(height: 1, indent: 76),
-                  _ListAction(icon: Icons.settings_backup_restore_rounded, color: AppColors.amber, title: 'Restore from computer',
-                      subtitle: 'Bring a backup onto this phone', onTap: onRestore),
+                  _ListAction(icon: Icons.settings_backup_restore_rounded, color: AppColors.amber, title: s.restoreFromComputer,
+                      subtitle: s.restoreFromComputerSubtitle, onTap: onRestore),
                 ],
               ),
             ),
             if (nearby.isNotEmpty) ...[
-              const SectionLabel('Nearby'),
+              SectionLabel(s.sectionNearby),
               Card(
                 child: Column(
                   children: [
@@ -248,16 +250,16 @@ class _ResumeCard extends StatelessWidget {
               value: fraction,
               size: 56,
               stroke: 6,
-              child: Text('${(fraction * 100).round()}%', style: t.labelMedium?.copyWith(fontWeight: FontWeight.w800)),
+              child: Text(ltr('${(fraction * 100).round()}%'), style: t.labelMedium?.copyWith(fontWeight: FontWeight.w800)),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Unfinished transfer to ${info.peer}', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(S.of(context).unfinishedTransferTo(info.peer), style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
-                  Text('${info.doneFiles} of ${info.totalFiles} files · ${info.reason}',
+                  Text('${S.of(context).filesProgress(info.doneFiles, info.totalFiles)} · ${info.reason}',
                       style: t.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],
               ),
@@ -266,7 +268,7 @@ class _ResumeCard extends StatelessWidget {
             FilledButton(
               style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
               onPressed: onResume,
-              child: const Text('Resume'),
+              child: Text(S.of(context).resume),
             ),
           ],
         ),

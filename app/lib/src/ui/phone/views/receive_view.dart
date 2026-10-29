@@ -2,6 +2,7 @@ import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../l10n.dart';
 import '../../theme.dart';
 import '../../widgets/visuals.dart';
 
@@ -39,8 +40,9 @@ class ReceiveView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final s = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Receive'), leading: const BackButton()),
+      appBar: AppBar(title: Text(s.receive), leading: const BackButton()),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -68,11 +70,11 @@ class ReceiveView extends StatelessWidget {
                   const SizedBox(height: 18),
                   Text(deviceName, style: t.titleLarge?.copyWith(color: Colors.white)),
                   const SizedBox(height: 4),
-                  Text('Scan this with HK Cloner on your old phone',
+                  Text(s.scanThisWithOldPhone,
                       style: t.bodyMedium?.copyWith(color: Colors.white70), textAlign: TextAlign.center),
                   if (pairing != null) ...[
                     const SizedBox(height: 12),
-                    Text(pairing!.addresses.take(2).join('  ·  '),
+                    Text(ltr(pairing!.addresses.take(2).join('  ·  ')),
                         style: t.labelMedium?.copyWith(color: Colors.white60, letterSpacing: 0.5)),
                   ],
                 ],
@@ -84,41 +86,41 @@ class ReceiveView extends StatelessWidget {
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: const IconBadge(Icons.chat_outlined, color: AppColors.teal, size: 44),
-                  title: Text('Allow WhatsApp folder', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                  subtitle: const Text('Needed once on Android 11+ so chats restore.'),
+                  title: Text(s.allowWhatsappFolder, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  subtitle: Text(s.allowWhatsappFolderHint),
                   trailing: FilledButton.tonal(
                     style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                     onPressed: onGrantWhatsApp,
-                    child: const Text('Allow'),
+                    child: Text(s.allow),
                   ),
                 ),
               ),
             ],
             ?notice,
-            const SectionLabel('How are the phones connected?'),
+            SectionLabel(s.howConnected),
             _ModeTile(
               mode: ConnectionMode.wifi,
               current: mode,
               onTap: onMode,
               icon: Icons.wifi_rounded,
-              title: 'Same Wi-Fi',
-              subtitle: 'Phones find each other automatically',
+              title: s.modeWifi,
+              subtitle: s.modeWifiHint,
             ),
             _ModeTile(
               mode: ConnectionMode.hotspot,
               current: mode,
               onTap: onMode,
               icon: Icons.wifi_tethering_rounded,
-              title: 'No Wi-Fi around',
-              subtitle: 'This phone makes a private hotspot; the QR joins it',
+              title: s.modeHotspot,
+              subtitle: s.modeHotspotHint,
             ),
             _ModeTile(
               mode: ConnectionMode.usbTethering,
               current: mode,
               onTap: onMode,
               icon: Icons.usb_rounded,
-              title: 'USB cable',
-              subtitle: 'Fastest. USB-C to USB-C or an OTG adapter',
+              title: s.usbCable,
+              subtitle: s.modeCableHint,
             ),
             if (modeHint != null)
               Padding(
@@ -129,7 +131,7 @@ class ReceiveView extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 10),
                 child: Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: AlignmentDirectional.centerStart,
                   child: FilledButton.tonal(
                     style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
                     onPressed: onModeAction,
