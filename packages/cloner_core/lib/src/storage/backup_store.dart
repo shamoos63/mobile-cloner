@@ -102,6 +102,27 @@ class BackupStore {
     await file.writeAsString(const JsonEncoder.withIndent('  ').convert(manifest.toJson()));
   }
 
+  /// Records a backup the computer made by itself (apps pulled over USB),
+  /// adding to what [device]'s backup already holds.
+  Future<void> recordCategory(DeviceInfo device, ContentCategory category, {required int files, required int bytes}) async {
+    final dir = deviceDir(device);
+    final previous = await readManifest(dir);
+    final manifest = BackupManifest(
+      alias: device.alias,
+      fingerprint: device.fingerprint,
+      deviceModel: device.deviceModel ?? previous?.deviceModel,
+      platform: device.cloner?.platform.name ?? previous?.platform,
+      sdkInt: device.cloner?.sdkInt ?? previous?.sdkInt,
+      lastBackup: DateTime.now(),
+      categories: {
+        ...?previous?.categories,
+        category.wireName: {'files': files, 'bytes': bytes, 'at': DateTime.now().toUtc().toIso8601String()},
+      },
+    );
+    await Directory(dir).create(recursive: true);
+    await File(p.join(dir, manifestName)).writeAsString(const JsonEncoder.withIndent('  ').convert(manifest.toJson()));
+  }
+
   static Future<BackupManifest?> readManifest(String deviceDir) async {
     final f = File(p.join(deviceDir, manifestName));
     if (!await f.exists()) return null;

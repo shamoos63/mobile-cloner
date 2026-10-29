@@ -36,4 +36,9 @@ abstract final class ApiRoute {
 
   /// Heartbeat both ways during a transfer: battery, free space, pause.
   static const status = '$clonerApiBase/status';
+
+  /// Installed apps (JSON list) and one app's icon (`?package=`, PNG), for
+  /// the computer over USB. Served on the loopback listener only.
+  static const apps = '$clonerApiBase/apps';
+  static const appIcon = '$clonerApiBase/apps/icon';
 }

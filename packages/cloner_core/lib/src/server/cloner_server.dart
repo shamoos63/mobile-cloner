@@ -49,7 +49,11 @@ class ClonerServer {
     required this.delegate,
     this.pin,
     PeerStatus Function()? localStatus,
+    this.apps,
   }) : localStatus = localStatus ?? (() => const PeerStatus());
+
+  /// The phone's installed apps, offered to a computer linked over USB.
+  final AppCatalog? apps;
 
   final DeviceIdentity identity;
   DeviceInfo info;
@@ -116,6 +120,15 @@ class ClonerServer {
           await _finish(req);
         case ('POST', ApiRoute.status):
           await _peerStatus(req);
+        case ('GET', ApiRoute.apps) when _viaLoopback(req) && apps != null:
+          await _json(req.response, await apps!.list());
+        case ('GET', ApiRoute.appIcon) when _viaLoopback(req) && apps != null:
+          final png = await apps!.icon(req.uri.queryParameters['package'] ?? '');
+          if (png == null) return _status(req.response, HttpStatus.notFound, 'No icon');
+          req.response
+            ..headers.contentType = ContentType('image', 'png')
+            ..add(png);
+          await req.response.close();
         default:
           await _status(req.response, HttpStatus.notFound, 'Not found');
       }
@@ -125,6 +138,10 @@ class ClonerServer {
       } catch (_) {}
     }
   }
+
+  /// Came in on the plain-HTTP 127.0.0.1 listener (adb forward from the
+  /// computer), not over the network.
+  bool _viaLoopback(HttpRequest req) => _loopback != null && req.connectionInfo?.localPort == _loopback!.port;
 
   String _remoteIp(HttpRequest req) => req.connectionInfo?.remoteAddress.address ?? '';
 
@@ -368,4 +385,11 @@ class _DigestSink implements Sink<crypto.Digest> {
   void add(crypto.Digest data) => value = data;
   @override
   void close() {}
+}
+
+/// Installed apps a phone offers to its computer (see [ApiRoute.apps]).
+abstract interface class AppCatalog {
+  /// Each app as `{package, label, versionName, versionCode, size, minSdk, readable}`.
+  Future<List<Map<String, Object?>>> list();
+  Future<List<int>?> icon(String package);
 }

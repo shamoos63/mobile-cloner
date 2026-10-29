@@ -3,6 +3,7 @@
 library;
 
 export 'src/client/cloner_client.dart';
+export 'src/discovery/adb_apps.dart';
 export 'src/discovery/adb_bridge.dart';
 export 'src/discovery/connection_mode.dart';
 export 'src/discovery/local_links.dart';
