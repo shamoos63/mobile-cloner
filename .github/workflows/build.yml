@@ -57,11 +57,11 @@ jobs:
           name: mobile-cloner-android
           path: app/build/app/outputs/flutter-apk/*.apk
       # Universal APK the desktop apps ship, to install on phones over USB.
-      - run: cp app/build/app/outputs/flutter-apk/app-release.apk mobile-cloner.apk
+      - run: cp app/build/app/outputs/flutter-apk/app-release.apk hk-cloner.apk
       - uses: actions/upload-artifact@v4
         with:
           name: phone-apk
-          path: mobile-cloner.apk
+          path: hk-cloner.apk
 
   windows:
     name: Windows
@@ -81,7 +81,7 @@ jobs:
         run: |
           flutter pub get
           flutter build windows --release
-          copy ..\phone-apk\mobile-cloner.apk build\windows\x64\runner\Release\
+          ..\tool\bundle_apk.ps1 ..\phone-apk\hk-cloner.apk
       - uses: actions/upload-artifact@v4
         with:
           name: mobile-cloner-windows
@@ -105,10 +105,8 @@ jobs:
         run: |
           flutter pub get
           flutter build macos --release
-          APP=build/macos/Build/Products/Release/mobile_cloner.app
-          cp ../phone-apk/mobile-cloner.apk "$APP/Contents/Resources/"
-          # Adding a file breaks the ad-hoc signature; sign again.
-          codesign --force --deep -s - "$APP"
+          # Also signs the app again (ad hoc): adding a file breaks the signature.
+          ../tool/bundle_apk.sh macos ../phone-apk/hk-cloner.apk
           cd build/macos/Build/Products/Release && ditto -c -k --keepParent "mobile_cloner.app" ../../../../../mobile-cloner-macos.zip
       - uses: actions/upload-artifact@v4
         with:
@@ -134,7 +132,7 @@ jobs:
         run: |
           flutter pub get
           flutter build linux --release
-          cp ../phone-apk/mobile-cloner.apk build/linux/x64/release/bundle/
+          ../tool/bundle_apk.sh linux ../phone-apk/hk-cloner.apk
       - uses: actions/upload-artifact@v4
         with:
           name: mobile-cloner-linux

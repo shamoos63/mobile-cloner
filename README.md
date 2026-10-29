@@ -20,7 +20,7 @@ batteries.
 
 - **Phone to phone**: photos and videos at original quality with their folders and capture dates, contacts (system vCard export), WhatsApp and WhatsApp Business.
 - **WhatsApp path mapping**: Android 10 and older keep WhatsApp in `/WhatsApp`; Android 11+ in `Android/media/com.whatsapp/WhatsApp`. The receiver writes each file to the location its own Android version uses. Chat databases are sent first.
-- **Connections**: same Wi-Fi (multicast discovery), private hotspot made by the receiver (credentials in the QR code), USB cable between phones (USB tethering), and computer over USB (ADB port forwarding).
+- **Connections**: same Wi-Fi (multicast discovery), private hotspot made by the receiver (credentials in the QR code), USB cable between phones (USB tethering), and computer over USB (ADB port forwarding). Every mode asks for Android's "Nearby devices" permission ("Location" before Android 13) first. A phone-to-phone cable only works when the other phone supports a USB network, so the app suggests the hotspot when no cable link comes up.
 - **Resilience**: byte-level resume, a checkpoint file written atomically after every file, same-device takeover so a transfer can continue on a different connection, battery heartbeat that pauses before a phone dies, foreground service so Android doesn't kill the transfer.
 - **Live speed and time left**, measured over a 5 second window.
 - **Desktop backup station**: incremental backups (only new files), per-device backup folders with a `backup.json` manifest, one-click restore to a phone.
@@ -40,7 +40,19 @@ flutter build apk --release                              # Android
 flutter build windows | macos | linux --release          # backup station
 ```
 
-CI (`.github/workflows/build.yml`) runs the core tests and builds all four targets.
+### Phone app inside the desktop app
+
+When a phone is plugged in over USB and HK Cloner is missing or older, the desktop app offers to install the APK it ships with. Put the APK there after building both:
+
+```bash
+tool/bundle_apk.sh macos       # -> mobile_cloner.app/Contents/Resources/data/hk-cloner.apk (re-signs ad hoc)
+tool/bundle_apk.sh linux       # -> build/linux/x64/release/bundle/data/hk-cloner.apk
+tool\bundle_apk.ps1            # Windows -> build\windows\x64\runner\Release\data\hk-cloner.apk
+```
+
+The desktop app looks in this order: the `HK_CLONER_APK` environment variable, `data/hk-cloner.apk` in its bundle, then `app/build/app/outputs/flutter-apk/app-release.apk` when it runs from a checkout (development). Without an APK, the prompt offers "Choose APK...".
+
+CI (`.github/workflows/build.yml`) runs the core tests, builds all four targets and bundles the APK into each desktop build with the same scripts.
 
 ## Command line
 

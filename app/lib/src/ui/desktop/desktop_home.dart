@@ -10,6 +10,7 @@ import '../../services/cloner_service.dart';
 import '../../services/format.dart';
 import '../widgets/labels.dart';
 import '../../version.dart';
+import 'install_app_dialog.dart';
 import 'title_bar.dart';
 import 'views/desktop_view.dart';
 
@@ -104,43 +105,75 @@ class _DesktopHomeState extends State<DesktopHome> {
     }
   }
 
-  /// Plugged in: install HK Cloner if it's missing or older, open it,
-  /// and map the ports so it links to this computer by itself.
+  /// An install prompt is open; other phones wait for Retry.
+  bool _prompting = false;
+
+  /// Plugged in: open HK Cloner linked to this computer. When it is missing
+  /// or older, ask first and install the APK shipped with this build.
   Future<void> _link(String serial) async {
     setState(() {
       _adbBusy.add(serial);
       _adbStatus[serial] = 'Checking for HK Cloner...';
     });
     try {
-      final apk = _bundledApk();
-      final installed = await adb.installedVersion(serial, androidPackage);
-      if (installed == null || installed < appVersionCode) {
-        if (apk != null && mounted) {
-          setState(() => _adbStatus[serial] = installed == null ? 'Installing HK Cloner...' : 'Updating HK Cloner...');
+      final app = await adb.appState(serial, androidPackage, versionCode: appVersionCode);
+      var status = 'Opened on the phone. Choose what to back up there.';
+      if (!app.ready) {
+        final installed = await _promptInstall(serial, app);
+        if (!mounted) return;
+        if (installed) {
+          status = app.missing
+              ? 'Installed and opened. Choose what to back up on the phone.'
+              : 'Updated and opened. Choose what to back up on the phone.';
+        } else if (app.missing) {
+          setState(() => _adbStatus[serial] = "HK Cloner isn't on the phone. Click Retry to install it.");
+          return;
+        } else {
+          status = 'Opened the older HK Cloner on the phone. Click Retry to update it.';
         }
       }
-      final r = await adb.ensureAppRunning(
-        serial,
-        package: androidPackage,
-        activity: androidActivity,
-        versionCode: appVersionCode,
-        apkPath: apk,
-      );
+      await adb.openLinked(serial, package: androidPackage, activity: androidActivity);
       if (!mounted) return;
       setState(() {
-        if (r.ok) _linked.add(serial);
-        _adbStatus[serial] = switch (r) {
-          AppSetupResult.installed => 'Installed and opened. Choose what to back up on the phone.',
-          AppSetupResult.updated => 'Updated and opened. Choose what to back up on the phone.',
-          AppSetupResult.alreadyInstalled => 'Opened on the phone. Choose what to back up there.',
-          AppSetupResult.outdatedNoApk => 'Opened (older version on the phone).',
-          AppSetupResult.missingApk => 'HK Cloner is not on the phone. Install the APK, then Retry.',
-        };
+        _linked.add(serial);
+        _adbStatus[serial] = status;
       });
     } catch (e) {
       if (mounted) setState(() => _adbStatus[serial] = 'Setup failed: ${_short(e)}');
     } finally {
       if (mounted) setState(() => _adbBusy.remove(serial));
+    }
+  }
+
+  /// "HK Cloner isn't on (phone)" with Install on phone. True once installed.
+  Future<bool> _promptInstall(String serial, PhoneApp app) async {
+    if (_prompting || !mounted) return false;
+    _prompting = true;
+    setState(() => _adbStatus[serial] = app.missing ? "HK Cloner isn't on the phone" : 'HK Cloner is out of date');
+    try {
+      final ok = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => InstallAppDialog(
+          deviceName: _nameOf(serial),
+          app: app,
+          apkPath: PhoneApk.locate(_bundleDir()),
+          bundledVersion: '$appVersionName ($appVersionCode)',
+          install: (apk) => adb.install(serial, apk),
+          uninstall: () => adb.uninstall(serial, androidPackage),
+          pickApk: () async {
+            final r = await FilePicker.pickFiles(
+              dialogTitle: 'Choose the HK Cloner APK',
+              type: FileType.custom,
+              allowedExtensions: const ['apk'],
+            );
+            return r?.files.single.path;
+          },
+        ),
+      );
+      return ok == true;
+    } finally {
+      _prompting = false;
     }
   }
 
@@ -154,20 +187,6 @@ class _DesktopHomeState extends State<DesktopHome> {
     final exeDir = File(Platform.resolvedExecutable).parent.path;
     // macOS: Foo.app/Contents/MacOS/Foo -> Foo.app/Contents/Resources
     return Platform.isMacOS ? p.normalize(p.join(exeDir, '..', 'Resources')) : exeDir;
-  }
-
-  /// The phone APK shipped with this desktop build (CI copies it in), or
-  /// MOBILE_CLONER_APK for development.
-  static String? _bundledApk() {
-    final candidates = [
-      Platform.environment['MOBILE_CLONER_APK'],
-      p.join(_bundleDir(), 'mobile-cloner.apk'),
-      p.join(_bundleDir(), 'data', 'mobile-cloner.apk'),
-    ];
-    for (final c in candidates) {
-      if (c != null && File(c).existsSync()) return c;
-    }
-    return null;
   }
 
   Future<void> _changeFolder() async {

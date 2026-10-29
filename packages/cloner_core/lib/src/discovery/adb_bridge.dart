@@ -77,9 +77,23 @@ class AdbBridge {
     return m == null ? null : int.parse(m.group(1)!);
   }
 
+  /// Whether [package] is on the phone at [versionCode] or newer.
+  Future<PhoneApp> appState(String serial, String package, {required int versionCode}) async {
+    final installed = await installedVersion(serial, package);
+    return PhoneApp(installed, versionCode);
+  }
+
   /// `adb install -r` (replace, keep data). Android 6 has no `-g`, so
-  /// permissions are still asked in the app.
-  Future<void> install(String serial, String apkPath) => _run(['-s', serial, 'install', '-r', apkPath]);
+  /// permissions are still asked in the app. Throws [AdbInstallException]
+  /// with the reason Android gave.
+  Future<void> install(String serial, String apkPath) async {
+    final r = await Process.run(adbPath, ['-s', serial, 'install', '-r', apkPath]);
+    final out = '${r.stdout}\n${r.stderr}';
+    if (r.exitCode != 0 || out.contains('Failure [')) throw AdbInstallException.parse(out);
+  }
+
+  /// Removes [package] and its data from the phone.
+  Future<void> uninstall(String serial, String package) => _run(['-s', serial, 'uninstall', package]);
 
   /// Opens the app's launcher activity; [extras] become string intent extras
   /// (the app reads `cloner_link=adb` to link to this computer by itself).
@@ -88,27 +102,10 @@ class AdbBridge {
     for (final e in extras.entries) ...['--es', e.key, e.value],
   ]);
 
-  /// Makes sure [package] is on the phone at [versionCode] or newer
-  /// (installing [apkPath] otherwise), then opens it linked to us.
-  Future<AppSetupResult> ensureAppRunning(
-    String serial, {
-    required String package,
-    required String activity,
-    required int versionCode,
-    String? apkPath,
-  }) async {
-    final installed = await installedVersion(serial, package);
-    var result = AppSetupResult.alreadyInstalled;
-    if (installed == null || installed < versionCode) {
-      if (apkPath == null || !File(apkPath).existsSync()) {
-        return installed == null ? AppSetupResult.missingApk : AppSetupResult.outdatedNoApk;
-      }
-      await install(serial, apkPath);
-      result = installed == null ? AppSetupResult.installed : AppSetupResult.updated;
-    }
+  /// Maps the ports and opens [package] linked to this computer.
+  Future<void> openLinked(String serial, {required String package, required String activity}) async {
     await connect(serial);
     await launch(serial, '$package/$activity', extras: const {'cloner_link': 'adb'});
-    return result;
   }
 
   Future<void> connect(String serial) async {
@@ -145,18 +142,120 @@ class AdbDevice {
   bool get unauthorized => state == 'unauthorized';
 }
 
-enum AppSetupResult {
-  alreadyInstalled,
-  installed,
-  updated,
+/// HK Cloner on a phone, compared with the version this computer ships.
+class PhoneApp {
+  const PhoneApp(this.installedVersion, this.wantedVersion);
 
-  /// Not installed and no APK ships with this desktop build.
-  missingApk,
+  /// Installed versionCode; null when the app isn't on the phone.
+  final int? installedVersion;
+  final int wantedVersion;
 
-  /// Installed but older, and no APK to update with; it was still opened.
-  outdatedNoApk;
+  bool get missing => installedVersion == null;
+  bool get outdated => installedVersion != null && installedVersion! < wantedVersion;
+  bool get ready => !missing && !outdated;
+}
 
-  bool get ok => this != missingApk;
+/// The phone APK shipped with a desktop build.
+///
+/// One location on every platform, filled by `tool/bundle_apk.sh` (or
+/// `tool/bundle_apk.ps1`) locally and by CI:
+/// - macOS: `HK Cloner.app/Contents/Resources/data/hk-cloner.apk`
+/// - Windows and Linux: `<folder of the exe>/data/hk-cloner.apk`
+abstract final class PhoneApk {
+  static const fileName = 'hk-cloner.apk';
+  static const folder = 'data';
+
+  /// Overrides every other location (development).
+  static const envVar = 'HK_CLONER_APK';
+
+  /// `flutter build apk` output, found from a development build of the
+  /// desktop app inside the same checkout.
+  static const devBuild = 'build/app/outputs/flutter-apk/app-release.apk';
+
+  /// The APK to install: [envVar], then the bundled copy in [bundleDir]
+  /// (the app's resources folder), then the copy older builds put next to
+  /// the exe, then the Android build output of a checkout [bundleDir] is in.
+  static String? locate(String bundleDir, {Map<String, String>? environment}) {
+    final env = environment ?? Platform.environment;
+    final sep = Platform.pathSeparator;
+    final candidates = [
+      env[envVar],
+      '$bundleDir$sep$folder$sep$fileName',
+      '$bundleDir${sep}mobile-cloner.apk',
+      ..._devCandidates(bundleDir),
+    ];
+    for (final c in candidates) {
+      if (c != null && c.isNotEmpty && File(c).existsSync()) return c;
+    }
+    return null;
+  }
+
+  /// `<dir>/build/app/outputs/...` for [bundleDir] and each parent: a desktop
+  /// build lives under `app/build/`, so one parent holds the Android output.
+  static Iterable<String> _devCandidates(String bundleDir) sync* {
+    var dir = Directory(bundleDir).absolute;
+    for (var i = 0; i < 10; i++) {
+      yield '${dir.path}${Platform.pathSeparator}${devBuild.replaceAll('/', Platform.pathSeparator)}';
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
+    }
+  }
+}
+
+/// Why `adb install` failed, from the `Failure [CODE: ...]` line.
+enum InstallFailure {
+  /// A copy signed with a different key is installed (e.g. a Play or debug
+  /// build). Only uninstalling first helps, which deletes the app's data.
+  updateIncompatible,
+
+  /// The phone has a newer version than this APK.
+  downgrade,
+
+  /// The phone refused installs over USB (Xiaomi "Install via USB", work
+  /// profiles, or the user tapped Block on the phone's prompt).
+  blocked,
+
+  /// The phone is still asking "Allow USB debugging?" or went offline.
+  notAuthorized,
+
+  noSpace,
+  invalidApk,
+  other,
+}
+
+class AdbInstallException implements Exception {
+  AdbInstallException(this.failure, this.detail);
+
+  factory AdbInstallException.parse(String output) {
+    final code = RegExp(r'(INSTALL_[A-Z_]+)').firstMatch(output)?.group(1) ?? '';
+    final failure = switch (code) {
+      'INSTALL_FAILED_UPDATE_INCOMPATIBLE' ||
+      'INSTALL_FAILED_SHARED_USER_INCOMPATIBLE' => InstallFailure.updateIncompatible,
+      'INSTALL_FAILED_VERSION_DOWNGRADE' => InstallFailure.downgrade,
+      'INSTALL_FAILED_USER_RESTRICTED' ||
+      'INSTALL_FAILED_ABORTED' ||
+      'INSTALL_FAILED_VERIFICATION_FAILURE' => InstallFailure.blocked,
+      'INSTALL_FAILED_INSUFFICIENT_STORAGE' => InstallFailure.noSpace,
+      'INSTALL_PARSE_FAILED_NOT_APK' ||
+      'INSTALL_FAILED_INVALID_APK' ||
+      'INSTALL_PARSE_FAILED_NO_CERTIFICATES' => InstallFailure.invalidApk,
+      _ when RegExp('unauthorized|offline|no devices', caseSensitive: false).hasMatch(output) =>
+        InstallFailure.notAuthorized,
+      _ => InstallFailure.other,
+    };
+    final line = output
+        .split('\n')
+        .map((l) => l.trim())
+        .firstWhere((l) => l.contains('Failure') || l.contains('error'), orElse: () => output.trim());
+    return AdbInstallException(failure, line);
+  }
+
+  final InstallFailure failure;
+  final String detail;
+
+  @override
+  String toString() => 'AdbInstallException(${failure.name}): $detail';
 }
 
 class AdbException implements Exception {
