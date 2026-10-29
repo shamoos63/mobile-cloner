@@ -5,6 +5,7 @@ import 'dart:io';
 import '../client/cloner_client.dart';
 import '../protocol/constants.dart';
 import '../protocol/device_info.dart';
+import 'local_links.dart';
 
 /// LocalSend-style discovery: UDP multicast announcements, answered with an
 /// HTTP `register` call (or a UDP reply as fallback), plus a legacy subnet
@@ -25,6 +26,7 @@ class Discovery {
 
   final _devices = StreamController<Device>.broadcast();
   final List<RawDatagramSocket> _sockets = [];
+  final Set<String> _joined = {};
 
   Stream<Device> get devices => _devices.stream;
 
@@ -32,20 +34,12 @@ class Discovery {
   void report(Device device) => _devices.add(device);
 
   Future<void> start() async {
-    final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
     final socket = await RawDatagramSocket.bind(
       InternetAddress.anyIPv4,
       port,
       reuseAddress: true,
       reusePort: !Platform.isWindows && !Platform.isAndroid,
     );
-    for (final iface in interfaces) {
-      try {
-        socket.joinMulticast(InternetAddress(group), iface);
-      } catch (_) {
-        // Interface without multicast support.
-      }
-    }
     socket.listen(
       (event) {
         if (event != RawSocketEvent.read) return;
@@ -57,7 +51,24 @@ class Discovery {
       onError: (Object _) {},
     );
     _sockets.add(socket);
+    await joinNewInterfaces();
     announce();
+  }
+
+  /// Joins the multicast group on interfaces that came up after [start]
+  /// (a hotspot or USB tethering link turned on later).
+  Future<void> joinNewInterfaces() async {
+    if (_sockets.isEmpty) return;
+    for (final iface in await NetworkInterface.list(type: InternetAddressType.IPv4)) {
+      if (!LinkKind.of(iface.name).local || !_joined.add(iface.name)) continue;
+      for (final s in _sockets) {
+        try {
+          s.joinMulticast(InternetAddress(group), iface);
+        } catch (_) {
+          // Interface without multicast support.
+        }
+      }
+    }
   }
 
   /// Sends our announcement. Call again when the user pulls to refresh.
@@ -93,23 +104,13 @@ class Discovery {
     }
   }
 
-  /// Tries `register` on every host of each local /24 network. Needed on
-  /// USB tethering and some hotspots where multicast is dropped.
+  /// Tries `register` on every host of each local /24 network: Wi-Fi,
+  /// hotspot, USB tethering and Ethernet, never mobile data or VPN. Needed
+  /// on USB tethering and some hotspots where multicast is dropped.
   Future<void> scanSubnets({int concurrency = 50}) async {
-    final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
-    final own = <String>{};
-    final targets = <String>[];
-    for (final iface in interfaces) {
-      for (final addr in iface.addresses) {
-        if (addr.isLoopback || addr.isLinkLocal) continue;
-        own.add(addr.address);
-        final prefix = addr.address.substring(0, addr.address.lastIndexOf('.'));
-        for (var i = 1; i < 255; i++) {
-          targets.add('$prefix.$i');
-        }
-      }
-    }
-    targets.removeWhere(own.contains);
+    final links = await LocalLink.list();
+    final own = {for (final l in links) l.address};
+    final targets = scanTargets(links).where((ip) => !own.contains(ip)).toList();
     var index = 0;
     Future<void> worker() async {
       while (index < targets.length) {
@@ -123,11 +124,23 @@ class Discovery {
     await Future.wait(List.generate(concurrency, (_) => worker()));
   }
 
+  /// Every host of each link's /24, cable links first (fastest to answer,
+  /// and the only route in cable mode).
+  static List<String> scanTargets(List<LocalLink> links) {
+    final ordered = [...links.where((l) => l.kind.cable), ...links.where((l) => !l.kind.cable)];
+    final prefixes = <String>{for (final l in ordered) l.address.substring(0, l.address.lastIndexOf('.'))};
+    return [
+      for (final prefix in prefixes)
+        for (var i = 1; i < 255; i++) '$prefix.$i',
+    ];
+  }
+
   void stop() {
     for (final s in _sockets) {
       s.close();
     }
     _sockets.clear();
+    _joined.clear();
   }
 
   Future<void> dispose() async {
