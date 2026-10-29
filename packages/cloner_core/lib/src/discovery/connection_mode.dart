@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../protocol/constants.dart';
 import '../protocol/device_info.dart';
+import '../transport/usb_mux.dart' show UsbTunnel;
 
 /// How two devices reach each other. All modes end up as a TCP/IP link, so
 /// the transfer code is the same; the mode only changes the setup steps the
@@ -14,9 +15,10 @@ enum ConnectionMode {
   /// QR code.
   hotspot,
 
-  /// USB-C to USB-C (or OTG) cable between two phones with USB tethering
-  /// enabled on one of them. Multicast is unreliable here, so the QR code or
-  /// a subnet scan connects the pair.
+  /// USB-C to USB-C (or OTG) cable between two phones. The phone the cable
+  /// makes USB host switches the other into Android Open Accessory mode and
+  /// [UsbTunnel] carries the transfer, so no tethering or network is needed.
+  /// (The name stays for compatibility with saved state.)
   usbTethering,
 
   /// Phone plugged into a computer with USB debugging on. The desktop runs

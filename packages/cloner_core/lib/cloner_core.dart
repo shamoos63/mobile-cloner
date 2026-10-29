@@ -26,3 +26,4 @@ export 'src/transfer/checkpoint.dart';
 export 'src/transfer/send_job.dart';
 export 'src/transfer/session_summary.dart';
 export 'src/transfer/speed_meter.dart';
+export 'src/transport/usb_mux.dart';
