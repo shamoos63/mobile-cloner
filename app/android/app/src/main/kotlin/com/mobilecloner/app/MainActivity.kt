@@ -3,10 +3,12 @@ package com.mobilecloner.app
 import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var bridge: AndroidBridge? = null
+    private var usbLink: UsbLink? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -14,6 +16,10 @@ class MainActivity : FlutterActivity() {
         bridge = b
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AndroidBridge.CHANNEL)
             .setMethodCallHandler(b)
+        val usb = UsbLink(this)
+        usbLink = usb
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UsbLink.CONTROL).setMethodCallHandler(usb)
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, UsbLink.EVENTS).setStreamHandler(usb)
     }
 
     // Keep the newest launch intent so Dart can read `cloner_link` on resume
@@ -21,6 +27,8 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        // Plugged into another phone running HK Cloner (accessory_filter.xml).
+        usbLink?.onIntent(intent)
     }
 
     @Deprecated("Deprecated in Java")
@@ -40,6 +48,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        usbLink?.dispose()
         bridge?.dispose()
         super.onDestroy()
     }

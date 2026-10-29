@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../platform/usb_link.dart';
 import '../../services/cloner_service.dart';
 import '../theme.dart';
 import '../widgets/discovery_access.dart';
 import '../widgets/labels.dart';
+import '../widgets/usb_cable_status.dart';
 import '../widgets/visuals.dart';
 import 'scan_page.dart';
 
@@ -42,6 +44,8 @@ class _ConnectPageState extends State<ConnectPage> {
   }
 
   Future<void> _start() async {
+    // A phone on the USB cable needs no permission and no network.
+    unawaited(service.startUsbCable());
     await service.ensureDiscoveryAccess();
     service.refresh(scan: true);
   }
@@ -101,6 +105,15 @@ class _ConnectPageState extends State<ConnectPage> {
     if (host != null && host.isNotEmpty) await _pick(() => service.connectManual(host));
   }
 
+  /// Cable progress worth showing here; null while nothing is plugged in.
+  String? _usbNotice() {
+    final link = UsbLink.instance;
+    return switch (link.state) {
+      UsbLinkState.idle || UsbLinkState.noDevice || UsbLinkState.connected => null,
+      _ => usbCableMessage(link.state, detail: link.detail).text,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -110,11 +123,13 @@ class _ConnectPageState extends State<ConnectPage> {
         actions: [IconButton(onPressed: () => service.refresh(scan: true), icon: const Icon(Icons.refresh_rounded))],
       ),
       body: ListenableBuilder(
-        listenable: service,
+        listenable: Listenable.merge([service, UsbLink.instance]),
         builder: (context, _) {
           final peers = service.peers.values
               .where((d) => !widget.desktopOnly || d.info.cloner?.platform.isDesktop == true || d.info.deviceType == DeviceType.desktop)
-              .toList();
+              .toList()
+            // The phone on the USB cable first.
+            ..sort((a, b) => (service.isUsbCable(b) ? 1 : 0) - (service.isUsbCable(a) ? 1 : 0));
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
             children: [
@@ -125,6 +140,14 @@ class _ConnectPageState extends State<ConnectPage> {
                   child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
               const DiscoveryAccessCard(),
+              if (_usbNotice() case final text?)
+                Card(
+                  child: ListTile(
+                    leading: const IconBadge(Icons.usb_rounded, size: 40, color: AppColors.violet),
+                    title: const Text('USB cable'),
+                    subtitle: Text(text),
+                  ),
+                ),
               const SectionLabel('Nearby'),
               if (peers.isEmpty)
                 Card(
@@ -151,7 +174,7 @@ class _ConnectPageState extends State<ConnectPage> {
                         subtitle: Text([
                           if (d.info.cloner?.sdkInt != null) 'Android API ${d.info.cloner!.sdkInt}',
                           if (!d.info.isCloner) 'LocalSend',
-                          d.ip,
+                          service.isUsbCable(d) ? 'USB cable' : d.ip,
                         ].join(' · ')),
                         trailing: const Icon(Icons.chevron_right_rounded),
                       ),
@@ -190,10 +213,9 @@ class _ConnectPageState extends State<ConnectPage> {
                     child: Text(
                       'Same Wi-Fi: both phones must be on the same network, and some routers (guest networks) '
                       'keep devices apart.\n\n'
-                      'USB cable: only the phone being charged by the other can turn on USB tethering, and the '
-                      'other phone must support a USB network, which many phones do not. If nothing shows up '
-                      'within a minute, unplug the cable and choose "No Wi-Fi around" on the new phone. It needs '
-                      'no router and is almost as fast.',
+                      'USB cable: open HK Cloner on both phones and tap Allow on both. One phone must work as USB '
+                      'host (OTG); if nothing happens, turn the cable around or use an OTG adapter.\n\n'
+                      'No router at all: choose "No Wi-Fi around" on the new phone and scan its code.',
                       style: t.bodyMedium,
                     ),
                   ),

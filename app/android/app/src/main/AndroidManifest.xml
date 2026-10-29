@@ -15,6 +15,10 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="33" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Phone-to-phone USB cable: one phone is USB host, the other an
+         Android Open Accessory. Neither is required to install. -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.accessory" android:required="false" />
 
     <!-- Keep long transfers alive -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -65,6 +69,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Old phone: plugged into a phone running HK Cloner, which made
+                 it an "HK Cloner Link" accessory. Opens the app. -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
+                android:resource="@xml/accessory_filter" />
+            <!-- New phone: the other phone came back in accessory mode. -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/usb_device_filter" />
         </activity>
 
         <service

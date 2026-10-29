@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:cloner_core/cloner_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../platform/android_bridge.dart';
+import '../../platform/usb_link.dart';
 import '../../restore/phone_receive_delegate.dart';
 import '../../services/cloner_service.dart';
 import '../theme.dart';
 import '../widgets/discovery_access.dart';
+import '../widgets/usb_cable_status.dart';
 import '../widgets/visuals.dart';
 import 'views/receive_view.dart';
 import 'views/transfer_view.dart';
@@ -23,14 +27,19 @@ class _ReceivePageState extends State<ReceivePage> {
   PairingCode? _pairing;
   String? _hint;
 
-  /// Cable mode found no cable network: offer the hotspot instead.
+  /// The cable is not working: offer "No Wi-Fi around" instead.
   bool _suggestHotspot = false;
   bool _needsWhatsApp = false;
+
+  /// When Cable mode was chosen; after a while without a link we say so.
+  DateTime? _cableSince;
+  Timer? _cableTick;
 
   @override
   void initState() {
     super.initState();
     service.startLooking();
+    UsbLink.instance.addListener(_onUsb);
     _refreshPairing();
     _checkWhatsAppAccess();
     _askPermissions();
@@ -51,6 +60,8 @@ class _ReceivePageState extends State<ReceivePage> {
   void dispose() {
     if (_mode == ConnectionMode.hotspot) service.bridge.stopLocalHotspot();
     service.stopLooking();
+    UsbLink.instance.removeListener(_onUsb);
+    _cableTick?.cancel();
     super.dispose();
   }
 
@@ -77,10 +88,12 @@ class _ReceivePageState extends State<ReceivePage> {
 
   Future<void> _setMode(ConnectionMode mode) async {
     if (_mode == ConnectionMode.hotspot && mode != ConnectionMode.hotspot) await service.bridge.stopLocalHotspot();
+    _cableTick?.cancel();
     setState(() {
       _mode = mode;
       _hint = null;
       _suggestHotspot = false;
+      _cableSince = null;
     });
     if (mode != ConnectionMode.adb) await service.ensureDiscoveryAccess();
     switch (mode) {
@@ -109,36 +122,29 @@ class _ReceivePageState extends State<ReceivePage> {
     }
   }
 
-  /// Two phones on one cable only share a network when the phone in USB
-  /// device role (the one being charged) turns on USB tethering AND the other
-  /// phone can use a USB network adapter, which many phones can't. Watch for
-  /// the cable link and say plainly when it doesn't come up.
+  /// Phone to phone over a USB cable with Android Open Accessory: no
+  /// tethering, no network. Whichever phone the cable makes USB host asks
+  /// for access and switches the other one over; the hint follows the link.
   Future<void> _cableMode() async {
-    setState(() => _hint = 'Connect the phones with a cable. Then turn on "USB tethering" on the phone being charged '
-        'by the other one (opening Settings now). On the other phone that switch is greyed out. To swap, tap the USB '
-        'notification and change who controls USB.');
-    await service.bridge.openTetherSettings();
-    for (var i = 0; i < 20 && mounted && _mode == ConnectionMode.usbTethering; i++) {
-      await Future<void>.delayed(const Duration(seconds: 3));
-      if (!mounted || _mode != ConnectionMode.usbTethering) return;
-      final cable = (await LocalLink.list()).where((l) => l.kind.cable).toList();
-      await _refreshPairing();
-      service.refresh(scan: cable.isNotEmpty);
-      if (cable.isNotEmpty) {
-        setState(() {
-          _suggestHotspot = false;
-          _hint = 'Cable link is up on this phone (${cable.first.address}). Scan the code from the old phone. '
-              'If it still finds nothing, the other phone cannot use a cable network: use "No Wi-Fi around".';
-        });
-      } else if (i == 9) {
-        setState(() {
-          _suggestHotspot = true;
-          _hint = 'No cable network yet. Turn on USB tethering on this phone, or on the old phone if this one is '
-              'being charged. Many phones cannot share a network with another phone over a cable. If yours can\'t, '
-              '"No Wi-Fi around" works without a router.';
-        });
-      }
-    }
+    _cableSince = DateTime.now();
+    _cableTick = Timer.periodic(const Duration(seconds: 5), (_) => _onUsb());
+    _onUsb();
+    await service.startUsbCable();
+  }
+
+  void _onUsb() {
+    if (!mounted || _mode != ConnectionMode.usbTethering) return;
+    final link = UsbLink.instance;
+    final since = _cableSince;
+    final m = usbCableMessage(
+      link.state,
+      detail: link.detail,
+      waitedLong: since != null && DateTime.now().difference(since) > const Duration(seconds: 25),
+    );
+    setState(() {
+      _hint = m.text;
+      _suggestHotspot = m.suggestHotspot;
+    });
   }
 
   @override

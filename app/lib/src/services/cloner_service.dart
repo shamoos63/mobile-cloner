@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../platform/android_bridge.dart';
+import '../platform/usb_link.dart';
 import '../restore/phone_receive_delegate.dart';
 import '../restore/receive_journal.dart';
 import '../version.dart';
@@ -115,6 +116,7 @@ class ClonerService extends ChangeNotifier {
       }
       checkpoint = await checkpointStore.load();
       _startBatteryWatch();
+      _initUsbCable();
       ready = true;
     } catch (e, st) {
       startupError = '$e';
@@ -234,8 +236,68 @@ class ClonerService extends ChangeNotifier {
 
   void _onPeer(Device device) {
     if (device.fingerprint == identity.fingerprint) return;
+    // The cable is faster and steadier than Wi-Fi: keep it while it's up.
+    final known = peers[device.fingerprint];
+    if (known != null && isUsbCable(known) && !isUsbCable(device) && _usbTunnel != null) return;
     peers[device.fingerprint] = device;
     notifyListeners();
+  }
+
+  // --- USB cable (Android Open Accessory) -------------------------------------
+
+  UsbTunnel? _usbTunnel;
+
+  /// The phone on the other end of the USB cable, once it answered.
+  Device? usbPeer;
+
+  bool isUsbCable(Device d) => d.ip == '127.0.0.1' && d.port == usbTunnelPort;
+
+  void _initUsbCable() {
+    if (!isAndroid) return;
+    final link = UsbLink.instance..init();
+    link.connections.listen(_onUsbCable);
+    // Opened because the other phone plugged in and made this one its accessory.
+    unawaited(link.accessoryPresent().then((present) {
+      if (present) unawaited(link.start());
+    }));
+  }
+
+  /// Looks for the other phone on the cable (Send, Receive > USB cable).
+  Future<void> startUsbCable() async {
+    if (isAndroid) await UsbLink.instance.start();
+  }
+
+  Future<void> _onUsbCable(MuxTransport transport) async {
+    await _usbTunnel?.stop();
+    final mux = UsbMux(transport)..start();
+    final tunnel = UsbTunnel(mux);
+    try {
+      await tunnel.start();
+    } catch (e) {
+      debugPrint('USB tunnel: $e');
+      await mux.close();
+      return;
+    }
+    _usbTunnel = tunnel;
+    unawaited(mux.closed.then((_) {
+      if (_usbTunnel != tunnel) return;
+      _usbTunnel = null;
+      final gone = usbPeer;
+      usbPeer = null;
+      if (gone != null && peers[gone.fingerprint] == gone) peers.remove(gone.fingerprint);
+      notifyListeners();
+    }));
+    // The other phone's app may still be starting its end of the tunnel.
+    for (var i = 0; i < 20 && !mux.isClosed; i++) {
+      try {
+        final d = await client.probe('127.0.0.1', port: usbTunnelPort, https: false, timeout: const Duration(seconds: 2));
+        usbPeer = d;
+        _onPeer(d);
+        return;
+      } catch (_) {
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+    }
   }
 
   void _onServerEvent(ServerEvent e) {
