@@ -78,12 +78,26 @@ class ClonerServer {
   int? get cablePort => _loopback?.port;
 
   /// Starts the network server, plus a plain-HTTP loopback listener on
-  /// [loopback] for ADB cable transfers (null disables it).
-  Future<void> start({int port = defaultPort, InternetAddress? address, int? loopback = loopbackPort}) async {
+  /// [loopback] for ADB cable transfers (null disables it). With
+  /// [fallbackToFreePort], a taken [port] (LocalSend or another copy of the
+  /// app is running) means any free port instead of failing; [port] then
+  /// tells which one, and peers learn it from discovery and the QR code.
+  Future<void> start({
+    int port = defaultPort,
+    InternetAddress? address,
+    int? loopback = loopbackPort,
+    bool fallbackToFreePort = false,
+  }) async {
     final bind = address ?? InternetAddress.anyIPv4;
-    _server = info.protocol == ProtocolType.https
-        ? await HttpServer.bindSecure(bind, port, identity.toSecurityContext())
-        : await HttpServer.bind(bind, port);
+    Future<HttpServer> listen(int p) => info.protocol == ProtocolType.https
+        ? HttpServer.bindSecure(bind, p, identity.toSecurityContext())
+        : HttpServer.bind(bind, p);
+    try {
+      _server = await listen(port);
+    } on SocketException {
+      if (!fallbackToFreePort || port == 0) rethrow;
+      _server = await listen(0);
+    }
     _server!.listen(_handle, onError: (_) {});
     if (loopback != null) {
       try {

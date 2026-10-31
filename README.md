@@ -32,7 +32,9 @@ See [docs/PLATFORM_LIMITS.md](docs/PLATFORM_LIMITS.md) for what Android does not
 
 ## Build
 
-Flutter is pinned to **3.32.8**: Flutter 3.35+ dropped Android 6 (API 23).
+Flutter is pinned to **3.32.8**: Flutter 3.35+ dropped Android 6 (API 23). Building with a newer Flutter rewrites project files and leaves build folders that break the next 3.32 build.
+
+On a Mac, `tool/build_macos.sh` checks the Flutter version (it uses `~/flutter-3.32.8` or `HK_FLUTTER` when the one on PATH is newer), cleans a build folder another Flutter made, builds the app and bundles the phone APK.
 
 ```bash
 cd packages/cloner_core && dart pub get && dart test     # core tests

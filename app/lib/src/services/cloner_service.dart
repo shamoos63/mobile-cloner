@@ -107,7 +107,8 @@ class ClonerService extends ChangeNotifier {
         localStatus: () => localStatus,
         apps: isAndroid ? _PhoneAppCatalog(bridge) : null,
       );
-      await server.start();
+      await server.start(fallbackToFreePort: true);
+      _useServerPort();
       server.events.listen(_onServerEvent);
       discovery = Discovery(client: client, self: () => self);
       discovery.devices.listen(_onPeer);
@@ -137,10 +138,24 @@ class ClonerService extends ChangeNotifier {
     return id;
   }
 
+  /// The port the server got (not 53317 when something else holds that).
+  int? _serverPort;
+
+  /// Announce the port the server really listens on.
+  void _useServerPort() {
+    if (server.port == null || server.port == (self.port)) return;
+    _serverPort = server.port;
+    debugPrint('Port $defaultPort is taken; listening on $_serverPort');
+    self = _buildSelf();
+    server.info = self;
+    client.self = self;
+  }
+
   DeviceInfo _buildSelf() {
     final a = android;
     final platform = isAndroid ? ClonerPlatform.android : ClonerPlatform.parse(Platform.operatingSystem);
     return DeviceInfo(
+      port: _serverPort ?? defaultPort,
       alias: AppSettings.instance.deviceName ?? defaultDeviceName,
       fingerprint: identity.fingerprint,
       deviceModel: a?.model ?? Platform.operatingSystem,
@@ -224,7 +239,8 @@ class ClonerService extends ChangeNotifier {
       localStatus: () => localStatus,
       apps: isAndroid ? _PhoneAppCatalog(bridge) : null,
     );
-    await server.start();
+    await server.start(fallbackToFreePort: true);
+    _useServerPort();
     server.events.listen(_onServerEvent);
     notifyListeners();
   }
